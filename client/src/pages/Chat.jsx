@@ -1,4 +1,4 @@
-import AppLayout  from "@/components/layout/AppLayout"
+import React from 'react'
 
 const Chat = () => {
   return (
@@ -6,5 +6,4 @@ const Chat = () => {
   )
 }
 
-const wrappedChat=AppLayout()(Chat)
-export default wrappedChat
+export default Chat

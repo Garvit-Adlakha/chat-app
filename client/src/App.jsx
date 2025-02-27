@@ -1,18 +1,22 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { lazy, Suspense } from "react"
 import Protected from "./components/auth/Protected"
-import LoadingSpinner from "./components/LoadingSpinner" // Create this component
-import NotFound from "./pages/NotFound" // Create this component
 
 // ... your lazy imports ...
 
+const Home = lazy(() => import("./pages/HomePage"))
+const LoginPage = lazy(() => import("./pages/LoginPage"))
+const Signup = lazy(() => import("./pages/SignupPage"))
+const MainChat = lazy(() => import("./pages/MainChat"))
+const Chat = lazy(() => import("./pages/Chat"))
+const Groups = lazy(() => import("./pages/Groups"))
+const NotFound = lazy(() => import("./pages/NotFound"))
 // Move this to AuthContext
-const user = true
+const user =true
 
 const App = () => {
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           {/* Auth routes */}
           <Route element={<Protected user={!user} redirect="/"/>}>
@@ -35,7 +39,6 @@ const App = () => {
           {/* 404 route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </Suspense>
     </BrowserRouter>
   )
 }

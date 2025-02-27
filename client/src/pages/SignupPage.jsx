@@ -14,6 +14,10 @@ const SignupPage = () => {
             reader.readAsDataURL(file);
         }
     };
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+    }
 
     return (
         <div className="hero min-h-screen bg-gradient-to-r from-[#0f0c29] via-[#302b63] to-[#24243e] text-white">
@@ -26,7 +30,7 @@ const SignupPage = () => {
                 </div>
                 <div className="card bg-opacity-30 bg-black backdrop-blur-xl w-full max-w-lg shadow-xl transition-transform duration-300 hover:scale-105">
                     <div className="card-body animate-slideUp">
-                        <fieldset className="fieldset w-full">
+                        <fieldset className="fieldset w-full" onSubmit={handleSubmit}>
                             <h1 className="text-3xl text-center mb-6 font-extrabold text-white">Create an Account</h1>
 
                             <div className="flex flex-col items-center justify-center mb-6">
@@ -101,7 +105,8 @@ const SignupPage = () => {
                                 </label>
                             </div>
 
-                            <button className="btn bg-[#302b63] text-white border-none btn-sm mt-6 w-full transition-all duration-300 hover:bg-[#24243e] hover:scale-105">
+                            <button className="btn bg-[#302b63] text-white border-none btn-sm mt-6 w-full transition-all duration-300 hover:bg-[#24243e] hover:scale-105" 
+                            >
                                 Sign Up
                             </button>
 

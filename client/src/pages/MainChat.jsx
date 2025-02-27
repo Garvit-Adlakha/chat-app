@@ -1,4 +1,4 @@
-import React from 'react'
+import AppLayout from '../components/layout/AppLayout'
 
 const MainChat = () => {
   return (
@@ -6,4 +6,5 @@ const MainChat = () => {
   )
 }
 
-export default MainChat
+const MainChatComponent = AppLayout()(MainChat)
+export default MainChatComponent 

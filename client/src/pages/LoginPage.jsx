@@ -1,6 +1,10 @@
 import { Link } from "react-router-dom"
 
 const LoginPage = () => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+}
   return (
     <div className="hero min-h-screen bg-gradient-to-r from-[#0f0c29] via-[#302b63] to-[#24243e]">
       <div className="hero-content flex-col lg:flex-row-reverse animate-fadeIn">
@@ -11,7 +15,7 @@ const LoginPage = () => {
         </div>
         <div className="card bg-black bg-opacity-20  backdrop-blur-lg w-full max-w-md shrink-0 shadow-2xl transition-all duration-300 hover:shadow-3xl hover:scale-[1.02]">
           <div className="card-body shadow-2xl animate-slideUp">
-            <fieldset className="fieldset text-2xl w-full">
+            <fieldset className="fieldset text-2xl w-full" onSubmit={handleSubmit}>
               <h1 className="text-3xl text-center m-2 text-white font-bold animate-pulse">Welcome Back</h1>
               <label className="fieldset-label text-white">Email</label>
               <label className="input validator my-2 transition-all hover:border-[#302b63] focus-within:border-[#302b63] bg-opacity-20 bg-black w-full">

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Sidebar, SidebarBody, useSidebar } from "../ui/sidebar";
 import { motion } from "framer-motion";
-import { IconUsers, IconMessage, IconSettings, IconSearch } from "@tabler/icons-react";
+import { IconUsers, IconMessage, IconSettings, IconSearch,IconHeartQuestion } from "@tabler/icons-react";
 
 interface Group {
   id: string;
@@ -59,12 +59,14 @@ export const SideBar = () => {
   const friends = mockFriends;
   const [isDirect, setIsDirect] = useState(false);
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRequest,setIsRequest] = useState(false);
   const { open } = useSidebar();
 
   return (
     <Sidebar>
       <SidebarBody className="flex flex-col p-0 shadow-md min-w-full h-full rounded-2xl">
-        <div className=" bg-neutral-200 dark:bg-neutral-900 flex flex-col items-center py-6 w-16 h-full flex-shrink-0 shadow-md backdrop-blur-2xl rounded-2xl mr-2">
+        <div className="bg-neutral-200 dark:bg-neutral-900 flex flex-col items-center py-6 w-16 h-full flex-shrink-0 shadow-md backdrop-blur-2xl rounded-2xl mr-2">
           <div className="mb-8 relative">
             <Avatar
               src={currentUser?.avatar}
@@ -74,36 +76,66 @@ export const SideBar = () => {
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-neutral-200 dark:border-neutral-900 rounded-full"></div>
           </div>
 
-        <div className="flex flex-col h-full justify-between">
-          <div className="flex flex-col items-center gap-5">
-            <button 
-              className={`p-2 rounded-md cursor-pointer transition-colors ${
-          isDirect ? 'bg-blue-500 text-white' : 'bg-transparent hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200'
-              }`}
-              onClick={() => setIsDirect(true)}
-              aria-label="Direct Messages"
+          <div className="flex flex-col h-full justify-between">
+            <div className="flex flex-col items-center gap-5">
+              <button 
+          className={`p-2 rounded-md cursor-pointer transition-colors ${
+            isDirect ? 'bg-blue-500 text-white' : 'bg-transparent hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200'
+          }`}
+          onClick={() => setIsDirect(true)}
+          aria-label="Direct Messages"
               >
-              <IconMessage className="w-6 h-6" />
-            </button>
+          <IconMessage className="w-6 h-6" />
+              </button>
+              
+              <button 
+          className={`p-2 rounded-md cursor-pointer transition-colors ${
+            !isDirect ? 'bg-blue-500 text-white' : 'bg-transparent hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200'
+          }`}
+          onClick={() => setIsDirect(false)}
+          aria-label="Groups"
+              >
+          <IconUsers className="w-6 h-6" />
+              </button>
+                <button 
+              className={`p-2 rounded-md cursor-pointer transition-colors ${
+              isRequest ? 'bg-blue-500 text-white' : 'bg-transparent hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200'
+              }`}
+              onClick={() => setIsRequest(!isRequest)}
+              aria-label="Friend Requests"
+                >
+              <IconHeartQuestion className="w-6 h-6" />
+                </button>
             
-            <button 
-              className={`p-2 rounded-md cursor-pointer transition-colors ${
-          !isDirect ? 'bg-blue-500 text-white' : 'bg-transparent hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200'
-              }`}
-              onClick={() => setIsDirect(false)}
-              aria-label="Groups"
-              >
-              <IconUsers className="w-6 h-6" />
-            </button>
-          </div>
+            </div>
 
-          <button 
-              className="p-2 rounded-md cursor-pointer hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 transition-colors mb-4"
-              aria-label="Settings"
-              >
-              <IconSettings className="w-6 h-6" />
-          </button>
-        </div>
+            <div className="relative">
+                <div className="relative">
+                <button 
+                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                  className="p-2 rounded-md cursor-pointer hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 transition-colors mb-4"
+                  aria-label="Settings"
+                >
+                  <IconSettings className="w-6 h-6" />
+                </button>
+                {isSettingsOpen && (
+                  <div className="absolute  left-7 bottom-10 mb-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700">
+                    <div className="py-2">
+                      <button className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700">
+                        Profile Settings
+                      </button>
+                      <button className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700">
+                        Appearance
+                      </button>
+                      <button className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700">
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+                </div>
+            </div>
+          </div>
         </div>
         <main className="flex flex-col flex-1 bg-white dark:bg-neutral-800 h-full">
           {isDirect ? (

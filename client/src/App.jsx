@@ -12,7 +12,7 @@ const Chat = lazy(() => import("./pages/Chat"))
 const Groups = lazy(() => import("./pages/Groups"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 // Move this to AuthContext
-const user =true
+const user =false
 
 const App = () => {
   return (

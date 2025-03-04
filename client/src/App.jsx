@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { lazy, Suspense } from "react"
 import Protected from "./components/auth/Protected"
+import { AppLayoutLoader, LayoutLoader } from "./components/layout/Loaders"
 
 // ... your lazy imports ...
 
@@ -12,11 +13,12 @@ const Chat = lazy(() => import("./pages/Chat"))
 const Groups = lazy(() => import("./pages/Groups"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 // Move this to AuthContext
-const user =false
+const user =true
 
 const App = () => {
   return (
     <BrowserRouter>
+        <Suspense fallback={<AppLayoutLoader />}>
         <Routes>
           {/* Auth routes */}
           <Route element={<Protected user={!user} redirect="/"/>}>
@@ -39,6 +41,7 @@ const App = () => {
           {/* 404 route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
     </BrowserRouter>
   )
 }

@@ -11,7 +11,7 @@ const AppLayout = () => (WrappedComponent) => {
                 <Title />
                 <Header />
                 <div className="grid grid-cols-4 gap-4 max-h-[calc(100vh-4rem)]">
-                    <div className="first col-span-1 h-[calc(100vh-4rem)]">
+                    <div className="first hidden md:inline-block md:col-span-1 h-[calc(100vh-4rem)] ">
                         <SidebarProvider>
                         <SideBar />
                         </SidebarProvider>

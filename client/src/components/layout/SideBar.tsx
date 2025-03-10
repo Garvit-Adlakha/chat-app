@@ -69,16 +69,23 @@ export const SideBar = () => {
         setIsLoggedIn(!isLoggedIn);
     };
     const handleRequestClick = () => {
-        
         setIsRequest(!isRequest);
         setRequestCount(0); // Reset count when viewing requests
     };
+    const IsDirectClickHandler = () => {
+    setIsDirect(true);
+    setIsRequest(false);
+    }
 
+    const isUserChatClickHandler = () => {
+        setIsDirect(false);
+        setIsRequest(false);
+    }
     return (
         <Sidebar>
             <SidebarBody className="flex flex-col p-0 shadow min-w-full h-full rounded-2xl">
                 <div className="bg-neutral-200 dark:bg-neutral-900 flex flex-col items-center py-6 w-16 h-full flex-shrink-0 shadow-md backdrop-blur-2xl rounded-2xl mr-2">
-                 <div className="mb-8 relative">
+                    <div className="mb-8 relative">
                         <Avatar
                             src={currentUser?.avatar}
                             alt={currentUser?.name || "User"}
@@ -91,9 +98,9 @@ export const SideBar = () => {
                         <div className="flex flex-col items-center gap-5">
                             <button
                                 className={`p-2 rounded-md cursor-pointer transition-colors ${
-                                    isDirect ? 'bg-blue-500 text-white' : 'bg-transparent hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200'
+                                    isDirect && !isRequest ? 'bg-blue-500 text-white' : 'bg-transparent hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200'
                                 }`}
-                                onClick={() => setIsDirect(true)}
+                                onClick={IsDirectClickHandler}
                                 aria-label="Direct Messages"
                             >
                                 <IconMessage className="w-6 h-6" />
@@ -101,9 +108,9 @@ export const SideBar = () => {
 
                             <button
                                 className={`p-2 rounded-md cursor-pointer transition-colors ${
-                                    !isDirect ? 'bg-blue-500 text-white' : 'bg-transparent hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200'
+                                    !isDirect && !isRequest ? 'bg-blue-500 text-white' : 'bg-transparent hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200'
                                 }`}
-                                onClick={() => setIsDirect(false)}
+                                onClick={isUserChatClickHandler}
                                 aria-label="Groups"
                             >
                                 <IconUsers className="w-6 h-6" />
@@ -120,7 +127,7 @@ export const SideBar = () => {
                                 {requestCount > 0 && (
                                     <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">
                     {requestCount}
-                  </span>
+                    /span>
                                 )}
                             </button>
                         </div>
@@ -139,7 +146,7 @@ export const SideBar = () => {
                                         <div className="py-2">
                                             <button className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700">
                                             <span>
-                                                 <IconSettingsSpark className="inline p-1"/> Profile Settings
+                                                    <IconSettingsSpark className="inline p-1"/> Profile Settings
                                                 </span>  
                                             </button>
                                             <button className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700">
@@ -148,8 +155,8 @@ export const SideBar = () => {
                                                 </span>
                                             </button>
                                             <button className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700">
-                                             <span>
-                                                 <IconLogout2 className="inline p-1"/> Logout
+                                                <span>
+                                                    <IconLogout2 className="inline p-1"/> Logout
                                                 </span>  
                                                 
                                             </button>
@@ -161,16 +168,28 @@ export const SideBar = () => {
                     </div>
                 </div>
                 <main className="flex flex-col flex-1 bg-white dark:bg-neutral-800 h-full">
-                    {isDirect ? (
+                {isDirect && !isRequest ? (
                         <DirectMessagesSection friends={friends} showOnlineOnly={showOnlineOnly} setShowOnlineOnly={setShowOnlineOnly} />
-                    ) : (
+                    ) : !isRequest ?(
                         <GroupsSection groups={groups} />
-                    )}
+                    ) : (
+                        <FriendRequestsSection />
+                    )
+                }
                 </main>
             </SidebarBody>
         </Sidebar>
     );
 };
+
+const FriendRequestsSection = () => {
+    return (
+        <div className="flex-1 flex flex-col justify-center items-center">
+            <IconHandLoveYou className="w-16 h-16 text-neutral-500 dark:text-neutral-400" />
+            <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mt-4">No friend requests</h3>
+        </div>
+    );
+}
 
 const DirectMessagesSection = ({ friends, showOnlineOnly, setShowOnlineOnly }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -200,7 +219,7 @@ const DirectMessagesSection = ({ friends, showOnlineOnly, setShowOnlineOnly }) =
                     />
                     <span className="ml-3 text-sm font-medium text-neutral-700 dark:text-neutral-300">
             Online only
-          </span>
+            </span>
                 </label>
             </div>
 
@@ -214,7 +233,7 @@ const DirectMessagesSection = ({ friends, showOnlineOnly, setShowOnlineOnly }) =
                             <div key={friend.id} className="flex items-center p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors cursor-pointer">
                                 <Avatar src={friend.avatar} alt={friend.name} className="w-10 h-10 mr-3" />
                                 <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                  {friend.name}
+                    {friend.name}
                 </span>
                             </div>
                         ))

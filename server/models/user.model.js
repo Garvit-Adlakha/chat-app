@@ -1,44 +1,59 @@
-import mongoose from 'mongoose'
-const userSchema=new mongoose.Schema({
-    name:{
-        type:String,
-        required:true
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+
+const userSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true
     },
-    username:{
-        type:String,
-        required:true,
-        unique:true
+    username: {
+        type: String,
+        required: true,
+        unique: true
     },
-    password:{
-        type:String,
-        required:true,
-        select:false
+    bio: {
+        type: String,
+        default: ""
     },
-    avatar:{
-        public_id:{
-            type:String,
-            required:true
+    password: {
+        type: String,
+        required: true,
+        select: false
+    },
+    avatar: {
+        public_id: {
+            type: String,
         },
-        url:{
-            type:String,
-            required:true
+        url: {
+            type: String,
         }
     },
-    email:{
-        type:String,
-        required:true,
-        unique:true
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        match: [/.+\@.+\..+/, 'Please fill a valid email address']
     },
-},{
-    timestamps:true
-})
+    lastActive: {
+        type: Date,
+        default: Date.now
+    }
+}, {
+    timestamps: true
+});
+
 userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) {
         return next();
     }
-    const salt = await bcrypt.genSalt(Number(process.env.BCRYPT_SALT_ROUNDS) || 10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
+    try {
+        const salt = await bcrypt.genSalt(Number(process.env.BCRYPT_SALT_ROUNDS) || 10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (error) {
+        next(error);
+    }
 });
 
 // Compare entered password with hashed password
@@ -60,4 +75,4 @@ userSchema.methods.updateLastActive = async function () {
     await this.save();
 };
 
-export const User=mongoose.model('User',userSchema)
+export const User = mongoose.model('User', userSchema);

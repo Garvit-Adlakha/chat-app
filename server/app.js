@@ -7,8 +7,12 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import connectDB from './database/db.js';
+
 dotenv.config();
-//await connectDB();
+
+await connectDB();
+
 const app = express();
 const Port=process.env.PORT || 5000;
 const server=createServer(app);
@@ -50,7 +54,10 @@ app.use(cors({
 }))
 
 //api routes
+import userRoutes from './routes/user.route.js';
+import { errorHandler } from './middlewares/error.middleware.js';
 
+app.use('/api/v1/user', userRoutes)
 
 
 //sockets routes
@@ -65,19 +72,7 @@ app.use((req,res)=>{
 })
 
 // Global Error handler
-app.use((err,req,res,next)=>{
-    console.error(err)
-    if(res.headersSent){
-        return next(err)
-    }
-    const statusCode=err.statusCode || 500
-     const message=err.message || 'Internal Server Error'
-    res.status(statusCode).json({
-        success:"error",
-        message,
-        ...(process)
-})
-})
+app.use(errorHandler)
 
 
 //server

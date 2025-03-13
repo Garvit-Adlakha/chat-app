@@ -55,9 +55,9 @@ app.use(cors({
 
 //api routes
 import userRoutes from './routes/user.route.js';
-import { errorHandler } from './middlewares/error.middleware.js';
-
+import chatRoutes from './routes/chat.route.js';
 app.use('/api/v1/user', userRoutes)
+app.use('/api/v1/chat', chatRoutes)
 
 
 //sockets routes
@@ -72,6 +72,8 @@ app.use((req,res)=>{
 })
 
 // Global Error handler
+import { errorHandler } from './middlewares/error.middleware.js';
+
 app.use(errorHandler)
 
 

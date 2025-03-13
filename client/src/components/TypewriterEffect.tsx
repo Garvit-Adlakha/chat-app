@@ -4,81 +4,65 @@ import { useNavigate } from "react-router-dom";
 import { LampContainer } from "./ui/lamp";
 import { motion } from "framer-motion";
 
+const WORDS = [
+  { text: "Connect", className: "text-blue-500 dark:text-blue-400 font-bold" },
+  { text: "instantly", className: "text-gray-800 dark:text-gray-200" },
+  { text: "with", className: "text-gray-600 dark:text-gray-300" },
+  { text: "anyone,", className: "text-gray-800 dark:text-gray-200" },
+  { text: "anywhere", className: "bg-gradient-to-r from-orange-500 to-red-500 dark:from-orange-400 dark:to-red-400 bg-clip-text text-transparent font-bold" },
+  { text: "anytime.", className: "bg-gradient-to-r from-green-500 to-teal-500 dark:from-green-400 dark:to-teal-400 bg-clip-text text-transparent font-bold" },
+];
+
+const BUTTON_VARIANTS = {
+  primary: "bg-blue-500 hover:bg-blue-600 text-white",
+  secondary: "bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 dark:bg-gray-800 dark:text-white dark:border-gray-600",
+};
+
 export function TypewriterEffectSmoothDemo() {
   const navigate = useNavigate();
 
-  const startChattingHandler = (e) => {
+  const handleNavigation = (path) => (e) => {
     e.preventDefault();
-    navigate("/chat");
+    navigate(path);
   };
-
-  const signUpHandler = (e) => {
-    e.preventDefault();
-    navigate("/signup");
-  };
-
-  const words = [
-    {
-      text: "Connect",
-      className: "text-blue-600 dark:text-blue-400 font-bold",
-    },
-    {
-      text: "instantly",
-      className: "text-gray-800 dark:text-gray-200",
-    },
-    {
-      text: "with",
-      className: "text-gray-600 dark:text-gray-300",
-    },
-    {
-      text: "anyone,",
-      className: "text-gray-800 dark:text-gray-200",
-    },
-    {
-      text: "anywhere",
-      className:
-        "text-gradient bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-red-500 dark:from-orange-400 dark:to-red-400 font-bold",
-    },
-    {
-      text: "anytime.",
-      className:
-        "text-gradient bg-clip-text text-transparent bg-gradient-to-r from-green-500 to-teal-500 dark:from-green-400 dark:to-teal-400 font-bold ",
-    },
-  ];
 
   return (
-    <LampContainer className="">
-      <motion.h1
-        initial={{ opacity: 0.5, y: 100 }}
+    <LampContainer>
+      <motion.div
+        initial={{ opacity: 0, y: 100 }}
         whileInView={{ opacity: 1, y: 0 }}
-        transition={{
-          delay: 0.3,
-          duration: 0.8,
-          ease: "easeInOut",
-        }}
-        className="bg-gradient-to-br from-slate-300 to-slate-500 py-2 bg-clip-text text-center text-4xl font-medium tracking-tight text-transparent md:text-7xl"
+        transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
+        className="flex flex-col items-center justify-center px-6 py-10 space-y-10 md:space-y-12 text-center"
       >
-        <div className="flex flex-col items-center justify-center px-4 dark:from-gray-900 dark:to-gray-800">
-          <p className="text-neutral-600 dark:text-neutral-300 text-2xl mb-6 font-medium">
-            Communication made simple
-          </p>
-          <TypewriterEffectSmooth words={words}  />
-          <div className="flex flex-col md:flex-row gap-4 mt-6">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+          <h1 className="bg-gradient-to-br from-slate-300 to-slate-500 bg-clip-text text-3xl sm:text-5xl md:text-7xl font-medium tracking-tight text-transparent">
+            <span className="block text-neutral-600 dark:text-neutral-300 text-lg sm:text-2xl md:text-3xl font-medium mb-4 md:mb-6">
+              Communication made simple
+            </span>
+            <TypewriterEffectSmooth words={WORDS} />
+          </h1>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="flex flex-col sm:flex-row gap-4 mt-4 sm:mt-6"
+        >
+          {[
+            { text: "Start chatting", variant: "primary", path: "/chat" },
+            { text: "Sign up", variant: "secondary", path: "/signup" },
+          ].map((button) => (
             <button
-              className="w-48 h-12 rounded-full bg-blue-500 hover:bg-blue-700 transition-colors duration-300 text-white font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-              onClick={startChattingHandler}
+              key={button.text}
+              onClick={handleNavigation(button.path)}
+              className={`w-full sm:w-48 h-12 rounded-full font-semibold text-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 ${BUTTON_VARIANTS[button.variant]}`}
             >
-              Start chatting
+              {button.text}
             </button>
-            <button
-              className="w-48 h-12 rounded-full bg-white hover:bg-gray-50 transition-colors duration-300 text-gray-800 border-2 border-gray-300 font-semibold text-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-              onClick={signUpHandler}
-            >
-              Sign up
-            </button>
-          </div>
-        </div>
-      </motion.h1>
+          ))}
+        </motion.div>
+      </motion.div>
     </LampContainer>
   );
 }

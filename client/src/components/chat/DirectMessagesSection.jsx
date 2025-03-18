@@ -1,14 +1,20 @@
 import { useState } from 'react';
 import { Search } from '../shared/Search';
 import Avatar from '../shared/Avatar';
+import ChatWindow from './ChatWindow';
 
 const DirectMessagesSection = ({ friends, showOnlineOnly, setShowOnlineOnly }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [isChatWindow,setIsChatWindow]=useState(false)
 
     const filteredFriends = friends.filter(friend =>
         (!showOnlineOnly || friend.online) &&
         friend.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+    const clickHandler=()=>{
+        setIsChatWindow(true)
+    }
+
 
     return (
         <>
@@ -41,7 +47,9 @@ const DirectMessagesSection = ({ friends, showOnlineOnly, setShowOnlineOnly }) =
                 <div className="space-y-2">
                     {filteredFriends.length > 0 ? (
                         filteredFriends.map(friend => (
-                            <div key={friend.id} className="flex items-center p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors cursor-pointer">
+                            <div key={friend.id} className="flex items-center p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors cursor-pointer"
+                            onClick={clickHandler}
+                            >
                                 <Avatar src={friend.avatar} alt={friend.name} className="w-10 h-10 mr-3" />
                                 <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
                     {friend.name}

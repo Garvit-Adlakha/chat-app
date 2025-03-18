@@ -10,13 +10,13 @@ const AppLayout = () => (WrappedComponent) => {
             <>
                 <Title />
                 <Header />
-                <div className="grid grid-cols-4 gap-4 max-h-[calc(100vh-4rem)]">
-                    <div className="first hidden md:inline-block md:col-span-1 h-[calc(100vh-4rem)] ">
+                <div className="grid grid-cols-4 max-h-[calc(100vh-4rem)]">
+                    <div className="hidden md:inline-block md:col-span-1 h-[calc(100vh-4rem)] ">
                         <SidebarProvider>
                         <SideBar />
                         </SidebarProvider>
                     </div>
-                    <div className="col-span-3">
+                <div className="col-span-3 h-[calc(100vh-4rem)] mr-3">
                         <WrappedComponent {...props} />
                     </div>
                     <div className="">

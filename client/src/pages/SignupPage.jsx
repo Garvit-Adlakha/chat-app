@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import VisuallyHiddenInput from "../components/VisuallyHiddenInput";
+import VisuallyHiddenInput from "../components/shared/VisuallyHiddenInput";
 import { IconCamera, IconHeartHandshake, IconShieldLock, IconUsers, IconBrandGoogle, IconBrandGithub } from '@tabler/icons-react';
 
 const SignupPage = () => {

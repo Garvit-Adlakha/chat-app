@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose ,{Schema} from "mongoose"
 const chatSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -9,7 +9,7 @@ const chatSchema = new mongoose.Schema({
         default: false
     },
     creator: {
-        type: Schema.Types.ObjectId,
+        type:Schema.Types.ObjectId,
         ref: 'User'
     },
     members: [
@@ -18,10 +18,6 @@ const chatSchema = new mongoose.Schema({
             ref: 'User'
         }
     ],
-    lastMessage: {
-        type: Schema.Types.ObjectId,
-        ref: 'Message'
-    }
 }, {
     timestamps: true
 })

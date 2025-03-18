@@ -1,22 +1,23 @@
 import { AppError, catchAsync } from "../middlewares/error.middleware.js";
-import{ Chat }from '../models/chat.model.js'
+import { Chat } from '../models/chat.model.js'
 import emitEvent from "../utils/Emit.js";
-import { ALERT,REFETCH_CHATS } from "../constants.js";
+import { ALERT, REFETCH_CHATS } from "../constants.js";
 import { User } from "../models/user.model.js";
+import mongoose from "mongoose";
 
 export const newGroupChat = catchAsync(async (req, res, next) => {
     const { name, members } = req.body;
-    
+
     if (!name?.trim()) {
         throw new AppError("Group name is required", 400);
     }
-    
+
     if (!Array.isArray(members) || members.length < 2) {
         throw new AppError("Please add at least 2 members to create a group", 400);
     }
 
     const allMembers = [...new Set([...members, req.id])]; // Remove duplicates
-    
+
     const chat = await Chat.create({
         name: name.trim(),
         isGroupChat: true,
@@ -38,10 +39,10 @@ export const newGroupChat = catchAsync(async (req, res, next) => {
 export const getMyChats = catchAsync(async (req, res, next) => {
     const transformedChats = await Chat.aggregate([
         // Match chats where current user is a member
-        { 
-            $match: { 
+        {
+            $match: {
                 members: req.user._id // Use _id instead of req.user
-            } 
+            }
         },
 
         // Lookup members from User collection
@@ -100,7 +101,7 @@ export const getMyChats = catchAsync(async (req, res, next) => {
                                     $map: {
                                         input: "$members",
                                         as: "m",
-                                        in: { 
+                                        in: {
                                             $cond: {
                                                 if: { $ifNull: ["$$m.avatar.url", false] },
                                                 then: "$$m.avatar.url",
@@ -118,7 +119,7 @@ export const getMyChats = catchAsync(async (req, res, next) => {
                                     $map: {
                                         input: "$members",
                                         as: "m",
-                                        in: { 
+                                        in: {
                                             $cond: {
                                                 if: { $ifNull: ["$$m.avatar.url", false] },
                                                 then: "$$m.avatar.url",
@@ -163,21 +164,21 @@ export const getMyChats = catchAsync(async (req, res, next) => {
     });
 });
 
-export const getMyGroups=catchAsync(async(req,res,next)=>{
-    const groups=await Chat.find({members:req.id,isGroupChat:true}).populate('members','name avatar');
+export const getMyGroups = catchAsync(async (req, res, next) => {
+    const groups = await Chat.find({ members: req.id, isGroupChat: true }).populate('members', 'name avatar');
 
-    const filteredGroups=groups.map(({members,_id,groupChat,name})=>({
-        members:members.filter(member=>member._id.toString()!==req.id),
+    const filteredGroups = groups.map(({ members, _id, groupChat, name }) => ({
+        members: members.filter(member => member._id.toString() !== req.id),
         _id,
         groupChat,
         name,
-        avatar:members.slice(0,3).map(({avatar})=>avatar?.url)
+        avatar: members.slice(0, 3).map(({ avatar }) => avatar?.url)
     })
     )
     res.status(200).json({
-        status:"success",
-        data:{
-            groups:filteredGroups
+        status: "success",
+        data: {
+            groups: filteredGroups
         }
     })
 }
@@ -185,8 +186,24 @@ export const getMyGroups=catchAsync(async(req,res,next)=>{
 
 export const addMembers = catchAsync(async (req, res, next) => {
     const { chatId, members } = req.body;
-    const chat = await Chat.findById(chatId);
-    
+
+    // Input validation
+    if (!chatId || !mongoose.Types.ObjectId.isValid(chatId)) {
+        throw new AppError("Invalid chat ID", 400);
+    }
+
+    if (!Array.isArray(members) || members.length === 0) {
+        throw new AppError("Please provide valid members to add", 400);
+    }
+
+    if (!members.every(id => mongoose.Types.ObjectId.isValid(id))) {
+        throw new AppError("Invalid member ID(s)", 400);
+    }
+
+    const newMembers = [...new Set(members)];
+
+    // Check member limit
+    const chat = await Chat.findById(chatId).lean();
     if (!chat) {
         throw new AppError("Chat not found", 404);
     }
@@ -203,43 +220,227 @@ export const addMembers = catchAsync(async (req, res, next) => {
         throw new AppError("You are not a member of this group", 400);
     }
 
-    if (!Array.isArray(members) || members.length === 0) {
-        throw new AppError("Please provide members to add", 400);
-    }
-
-    const newMembers = [...new Set(members)];
-
-    // Check for duplicates with existing members
-    const duplicateMembers = newMembers.filter(id => chat.members.includes(id));
-    if (duplicateMembers.length > 0) {
-        throw new AppError("Some members are already in the group", 400);
-    }
-
-    const allNewMembers = await User.find({ _id: { $in: newMembers } }, "name");
-    if (allNewMembers.length !== newMembers.length) {
-        throw new AppError("Some users not found", 404);
-    }
-
-    // Check member limit before adding
-    if (chat.members.length + newMembers.length > 100) {
-        throw new AppError("Members limit exceeded", 400);
-    }
-
-    chat.members.push(...newMembers);
-    await chat.save();
-
-    const allUsersName = allNewMembers.map(i => i.name).join(', ');
-
-    emitEvent(
-        req,
-        ALERT,
-        chat.members,
-        `${allUsersName} have been added to ${chat.name} group`
+    // Check for duplicates
+    const duplicateMembers = newMembers.filter(id =>
+        chat.members.some(memberId => memberId.toString() === id)
     );
-    emitEvent(req, REFETCH_CHATS, chat.members);
-    
+    if (duplicateMembers.length > 0) {
+        throw new AppError(`Members already in group: ${duplicateMembers.join(', ')}`, 400);
+    }
+
+    if (chat.members.length + newMembers.length > 100) {
+        throw new AppError("Members limit exceeded (max 100)", 400);
+    }
+
+    // Perform updates
+    try {
+        const [updatedChat, allNewMembers] = await Promise.all([
+            Chat.findOneAndUpdate(
+                { _id: chatId },
+                { $addToSet: { members: { $each: newMembers } } },
+                { new: true }
+            ),
+            User.find({ _id: { $in: newMembers } }, "name").lean()
+        ]);
+
+        if (allNewMembers.length !== newMembers.length) {
+            const foundIds = allNewMembers.map(m => m._id.toString());
+            const missingIds = newMembers.filter(id => !foundIds.includes(id));
+            throw new AppError(`Users not found: ${missingIds.join(', ')}`, 404);
+        }
+
+        // Emit events
+        const allUsersName = allNewMembers.map(m => m.name).join(', ');
+        emitEvent(
+            req,
+            ALERT,
+            updatedChat.members,
+            `${allUsersName} have been added to ${chat.name} group`
+        );
+        emitEvent(req, REFETCH_CHATS, updatedChat.members);
+
+        return res.status(200).json({
+            success: true,
+            message: "Members added successfully",
+            data: {
+                addedMembers: allNewMembers.map(m => ({
+                    _id: m._id,
+                    name: m.name
+                })),
+                totalMembers: updatedChat.members.length
+            }
+        });
+    } catch (error) {
+        throw new AppError(
+            "Failed to add members: " + error.message,
+            error.status || 500
+        );
+    }
+});
+
+export const removeMembers = catchAsync(async (req, res, next) => {
+    const { chatId, members } = req.body
+
+    // Input validation
+    if (!chatId || !mongoose.Types.ObjectId.isValid(chatId)) {
+        throw new AppError("Invalid chat ID", 400);
+    }
+
+    if (!Array.isArray(members) || members.length === 0) {
+        throw new AppError("Please provide valid members to add", 400);
+    }
+
+    if (!members.every(id => mongoose.Types.ObjectId.isValid(id))) {
+        throw new AppError("Invalid member ID(s)", 400);
+    }
+
+    const removedMembers = [...new Set(members)];
+
+    const chat = await Chat.findById(chatId).lean();
+    if (!chat) {
+        throw new AppError("Chat not found", 404);
+    }
+
+    if (!chat.isGroupChat) {
+        throw new AppError("This is not a group chat", 400);
+    }
+
+    if (chat.creator.toString() !== req.id) {
+        throw new AppError("You are not authorized to remove members", 403);
+    }
+
+    if (!chat.members.some(member=>member.toString() === req.id.toString())) {
+        throw new AppError("You are not a member of this group", 400);
+    }
+
+    const remainingMembers = chat.members.filter(member => !removedMembers.includes(member.toString()));
+
+    if (remainingMembers.length < 2) {
+        throw new AppError("Group must have at least 2 members", 400)
+    }
+
+
+    try {
+        const [updatedChat, allRemovedMembers] = await Promise.all([
+            Chat.findOneAndUpdate(
+                { _id: chatId },
+                { $pull: { members: { $in: removedMembers } } },
+                { new: true }
+            ),
+            User.find({ _id: { $in: removedMembers } }, "name").lean()
+        ]);
+
+        if (allRemovedMembers.length !== removedMembers.length) {
+            const foundIds = allRemovedMembers.map(m => m._id.toString());
+            const missingIds = removedMembers.filter(id => !foundIds.includes(id));
+            throw new AppError(`Users not found: ${missingIds.join(', ')}`, 404);
+        }
+
+        const allUsersName = allRemovedMembers.map(m => m.name).join(', ');
+        emitEvent(
+            req,
+            ALERT,
+            updatedChat.members,
+            `${allUsersName} have been removed from ${chat.name} group`
+        );
+        emitEvent(req, REFETCH_CHATS, updatedChat.members);
+
+        return res.status(200).json({
+            success: true,
+            message: "Members removed successfully",
+            data: {
+                removedMembers: allRemovedMembers.map(m => ({
+                    _id: m._id,
+                    name: m.name
+                })),
+                totalMembers: updatedChat.members.length
+            }
+        });
+    } catch (error) {
+        throw new AppError(
+            "Failed to remove members: " + error.message,
+            error.status || 500
+        );
+    }
+
+})
+
+export const deleteChat = catchAsync(async (req, res, next) => {
+    const { id: chatId } = req.params;
+
+    if (!chatId || !mongoose.Types.ObjectId.isValid(chatId)) {
+        throw new AppError("Invalid chat ID", 400);
+    }
+    // Check if chat exists
+    const chat = await Chat.findById({
+        _id: chatId
+    }).lean()
+
+    if (!chat) {
+        throw new AppError("Chat not found", 404)
+    }
+
+    if (chat.creator.toString() !== req.id) {
+        throw new AppError("You are not authorized to delete this chat", 403)
+    }
+
+    await Chat.findByIdAndDelete(chatId);
+    emitEvent(req, ALERT, chat.members, "Chat has been deleted")
+    emitEvent(req, REFETCH_CHATS, chat.members)
+
     return res.status(200).json({
         success: true,
-        message: "Members added successfully"
-    });
-});
+        message: "Chat deleted successfully",
+        data: chat
+    })
+
+})
+
+export const leaveGroup = catchAsync(async (req, res, next) => {
+    const chatId  = req.params.id
+
+    if (!chatId || !mongoose.Types.ObjectId.isValid(chatId)) {
+        throw new AppError("Invalid chat ID", 400);
+    }
+
+    const chat = await Chat.findById(chatId).lean()
+
+
+    if (!chat) {
+        throw new AppError("Chat not found", 404)
+    }
+    if (!chat.isGroupChat) {
+        throw new AppError("This is not a group chat")
+    }
+    // if (chat.creator.toString() === req.id) {
+    //     throw new AppError("You can't leave a group you created", 403)
+    // }
+    // Check if user is a member by comparing ObjectId strings
+    if (!chat.members.some(member => member.toString() === req.id.toString())) {
+        throw new AppError("You are not a member of this group", 400);
+    }
+
+    const remainingMembers = chat.members.filter((member) => member.toString() !== req.id.toString())
+
+    if (remainingMembers < 3) {
+        throw new AppError("Group must have at least 3 members")
+    }
+
+    if (chat.creator.toString() === req.id.toString()) {
+        const newCreator = remainingMembers[Math.floor(Math.random() * remainingMembers.length)];
+        await Chat.findByIdAndUpdate(chatId, { creator: newCreator });
+    }
+    const updatedChat = await Chat.findByIdAndUpdate
+        (chatId,
+            { $pull: { members: req.id } },
+            { new: true }
+        ).lean()
+
+    emitEvent(req, ALERT, updatedChat.members, `${req.user.name} has left the group`)
+    emitEvent(req, REFETCH_CHATS, updatedChat.members)
+
+    return res.status(200).json({
+        success: true,
+        message: "You have left the group",
+    })
+})

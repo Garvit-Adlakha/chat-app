@@ -216,7 +216,7 @@ export const addMembers = catchAsync(async (req, res, next) => {
         throw new AppError("You are not authorized to add members", 403);
     }
 
-    if (!chat.members.includes(req.id)) {
+    if (!chat.members.some(member=>member.toString() === req.id.toString())) {
         throw new AppError("You are not a member of this group", 400);
     }
 
@@ -397,50 +397,154 @@ export const deleteChat = catchAsync(async (req, res, next) => {
 })
 
 export const leaveGroup = catchAsync(async (req, res, next) => {
-    const chatId  = req.params.id
+    const chatId = req.params.id;
 
-    if (!chatId || !mongoose.Types.ObjectId.isValid(chatId)) {
+    if (!mongoose.Types.ObjectId.isValid(chatId)) {
         throw new AppError("Invalid chat ID", 400);
     }
 
-    const chat = await Chat.findById(chatId).lean()
-
+    // Find chat and validate
+    const chat = await Chat.findById(chatId)
+        .select('members creator isGroupChat name')
+        .lean();
 
     if (!chat) {
-        throw new AppError("Chat not found", 404)
+        throw new AppError("Chat not found", 404);
     }
+    
     if (!chat.isGroupChat) {
-        throw new AppError("This is not a group chat")
+        throw new AppError("This is not a group chat", 400);
     }
-    // if (chat.creator.toString() === req.id) {
-    //     throw new AppError("You can't leave a group you created", 403)
-    // }
-    // Check if user is a member by comparing ObjectId strings
-    if (!chat.members.some(member => member.toString() === req.id.toString())) {
+
+    // Check membership
+    if (!chat.members.some(member => member.toString() === req.id)) {
         throw new AppError("You are not a member of this group", 400);
     }
 
-    const remainingMembers = chat.members.filter((member) => member.toString() !== req.id.toString())
+    // Calculate remaining members
+    const remainingMembers = chat.members
+        .filter(member => member.toString() !== req.id);
 
-    if (remainingMembers < 3) {
-        throw new AppError("Group must have at least 3 members")
+    if (remainingMembers.length < 3) {
+        throw new AppError("Group must have at least 3 members", 400);
     }
 
-    if (chat.creator.toString() === req.id.toString()) {
-        const newCreator = remainingMembers[Math.floor(Math.random() * remainingMembers.length)];
-        await Chat.findByIdAndUpdate(chatId, { creator: newCreator });
+    try {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        let updatedChat;
+
+        if (chat.creator.toString() === req.id) {
+            // If creator is leaving, randomly assign new creator
+            const newCreator = remainingMembers[
+                Math.floor(Math.random() * remainingMembers.length)
+            ];
+            
+            updatedChat = await Chat.findByIdAndUpdate(
+                chatId,
+                {
+                    $pull: { members: req.id },
+                    $set: { creator: newCreator }
+                },
+                { 
+                    new: true,
+                    session,
+                    runValidators: true 
+                }
+            ).lean();
+        } else {
+            // Regular member leaving
+            updatedChat = await Chat.findByIdAndUpdate(
+                chatId,
+                { $pull: { members: req.id } },
+                { 
+                    new: true,
+                    session,
+                    runValidators: true 
+                }
+            ).lean();
+        }
+
+        await session.commitTransaction();
+
+        // Emit events after successful update
+        emitEvent(
+            req,
+            ALERT,
+            updatedChat.members,
+            `${req.user.name} has left the group`
+        );
+        emitEvent(req, REFETCH_CHATS, updatedChat.members);
+
+        return res.status(200).json({
+            success: true,
+            message: "You have left the group",
+            data: {
+                chatId: updatedChat._id,
+                remainingMembers: updatedChat.members.length,
+                newCreator: updatedChat.creator
+            }
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        throw new AppError(
+            `Failed to leave group: ${error.message}`,
+            error.status || 500
+        );
+    } finally {
+        session?.endSession();
     }
-    const updatedChat = await Chat.findByIdAndUpdate
-        (chatId,
-            { $pull: { members: req.id } },
-            { new: true }
-        ).lean()
+});
 
-    emitEvent(req, ALERT, updatedChat.members, `${req.user.name} has left the group`)
-    emitEvent(req, REFETCH_CHATS, updatedChat.members)
+export const sendAttachments= catchAsync(async(req,res,next)=>{
+    const {chatId}=req.body;
 
-    return res.status(200).json({
+    const files=req.files?.file || []
+
+    if(files.length===0){
+        throw new AppError("Please provide a file",400)
+    }
+    if(file.length>5){
+        throw new AppError("You can only send 5 files at a time",400)
+    }
+    
+    const [chat,me]=await Promise.all([
+        Chat.findbyId(chatId),  
+    ])
+    if(!chat){
+        throw new AppError("Chat not found",404)
+    }
+    if(files.length<1){
+        throw new AppError("Please provide a file",400)
+    }
+    
+    const attachments= await uploadToCLoufinary(files)
+    const messageForDb={
+        content:"",
+        attachments,
+        sender:req.id,
+        name:req.user.name,
+    }
+
+    const messageForEmit={
+        ...messageForDb,
+        sender:{
+            _id:req.id,
+            name:req.user.name,
+        }
+
+    }
+    emitEvent(req, NEW_MESSAGE, chat.members, {
+        message: messageForRealTime,
+        chatId,
+      });
+    
+      emitEvent(req, NEW_MESSAGE_ALERT, chat.members, { chatId });
+    
+      return res.status(200).json({
         success: true,
-        message: "You have left the group",
-    })
+        message,
+      });
 })

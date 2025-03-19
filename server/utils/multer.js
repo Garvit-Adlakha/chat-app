@@ -7,4 +7,6 @@ const upload=multer({
     dest:"uploads/"
 })
 
+
+export const attachmentsMulter=upload.array("files",5)
 export default upload

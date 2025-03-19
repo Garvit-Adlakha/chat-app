@@ -88,15 +88,15 @@ export const signout = catchAsync(async (req, res, next) => {
 
 // todo
 export const serachUser=catchAsync(async(req,res,next)=>{
-//     const {username}=req.query;
-//     const user=await User.findOne
+    const {name}=req.query;
+    const user=await User.findOne()
 
-//     return res
-//     .status(200)
-//     .json({
-//         status:"success",
-//         data:{
-//             users
-//         }   
-// })
+    return res
+    .status(200)
+    .json({
+        status:"success",
+        data:{
+            users
+        }   
+})
 })

@@ -4,6 +4,9 @@ import emitEvent from "../utils/Emit.js";
 import { ALERT, REFETCH_CHATS } from "../constants.js";
 import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
+import { uploadMedia, deleteMediaFromCloudinary, deleteVideoFromCloudinary } from "../utils/cloudinary.js";
+import { Message } from "../models/message.model.js";
+import { NEW_MESSAGE_ALERT, NEW_ATTACHMENT_ALERT } from "../constants.js";
 
 export const newGroupChat = catchAsync(async (req, res, next) => {
     const { name, members } = req.body;
@@ -216,7 +219,7 @@ export const addMembers = catchAsync(async (req, res, next) => {
         throw new AppError("You are not authorized to add members", 403);
     }
 
-    if (!chat.members.some(member=>member.toString() === req.id.toString())) {
+    if (!chat.members.some(member => member.toString() === req.id.toString())) {
         throw new AppError("You are not a member of this group", 400);
     }
 
@@ -309,7 +312,7 @@ export const removeMembers = catchAsync(async (req, res, next) => {
         throw new AppError("You are not authorized to remove members", 403);
     }
 
-    if (!chat.members.some(member=>member.toString() === req.id.toString())) {
+    if (!chat.members.some(member => member.toString() === req.id.toString())) {
         throw new AppError("You are not a member of this group", 400);
     }
 
@@ -365,37 +368,6 @@ export const removeMembers = catchAsync(async (req, res, next) => {
 
 })
 
-export const deleteChat = catchAsync(async (req, res, next) => {
-    const { id: chatId } = req.params;
-
-    if (!chatId || !mongoose.Types.ObjectId.isValid(chatId)) {
-        throw new AppError("Invalid chat ID", 400);
-    }
-    // Check if chat exists
-    const chat = await Chat.findById({
-        _id: chatId
-    }).lean()
-
-    if (!chat) {
-        throw new AppError("Chat not found", 404)
-    }
-
-    if (chat.creator.toString() !== req.id) {
-        throw new AppError("You are not authorized to delete this chat", 403)
-    }
-
-    await Chat.findByIdAndDelete(chatId);
-    emitEvent(req, ALERT, chat.members, "Chat has been deleted")
-    emitEvent(req, REFETCH_CHATS, chat.members)
-
-    return res.status(200).json({
-        success: true,
-        message: "Chat deleted successfully",
-        data: chat
-    })
-
-})
-
 export const leaveGroup = catchAsync(async (req, res, next) => {
     const chatId = req.params.id;
 
@@ -411,7 +383,7 @@ export const leaveGroup = catchAsync(async (req, res, next) => {
     if (!chat) {
         throw new AppError("Chat not found", 404);
     }
-    
+
     if (!chat.isGroupChat) {
         throw new AppError("This is not a group chat", 400);
     }
@@ -440,17 +412,17 @@ export const leaveGroup = catchAsync(async (req, res, next) => {
             const newCreator = remainingMembers[
                 Math.floor(Math.random() * remainingMembers.length)
             ];
-            
+
             updatedChat = await Chat.findByIdAndUpdate(
                 chatId,
                 {
                     $pull: { members: req.id },
                     $set: { creator: newCreator }
                 },
-                { 
+                {
                     new: true,
                     session,
-                    runValidators: true 
+                    runValidators: true
                 }
             ).lean();
         } else {
@@ -458,10 +430,10 @@ export const leaveGroup = catchAsync(async (req, res, next) => {
             updatedChat = await Chat.findByIdAndUpdate(
                 chatId,
                 { $pull: { members: req.id } },
-                { 
+                {
                     new: true,
                     session,
-                    runValidators: true 
+                    runValidators: true
                 }
             ).lean();
         }
@@ -498,53 +470,189 @@ export const leaveGroup = catchAsync(async (req, res, next) => {
     }
 });
 
-export const sendAttachments= catchAsync(async(req,res,next)=>{
-    const {chatId}=req.body;
+export const sendAttachments = catchAsync(async (req, res, next) => {
+    const { chatId } = req.body;
 
-    const files=req.files?.file || []
+    const files = req.files
 
-    if(files.length===0){
-        throw new AppError("Please provide a file",400)
+    if (files.length === 0) {
+        throw new AppError("Please provide a file", 400)
     }
-    if(file.length>5){
-        throw new AppError("You can only send 5 files at a time",400)
+    if (files.length > 5) {
+        throw new AppError("You can only send 5 files at a time", 400)
     }
-    
-    const [chat,me]=await Promise.all([
-        Chat.findbyId(chatId),  
+
+    const [chat] = await Promise.all([
+        Chat.findById(chatId)
     ])
-    if(!chat){
-        throw new AppError("Chat not found",404)
+    if (!chat) {
+        throw new AppError("Chat not found", 404)
     }
-    if(files.length<1){
-        throw new AppError("Please provide a file",400)
-    }
-    
-    const attachments= await uploadToCLoufinary(files)
-    const messageForDb={
-        content:"",
-        attachments,
-        sender:req.id,
-        name:req.user.name,
+    if (files.length < 1) {
+        throw new AppError("Please provide a file", 400)
     }
 
-    const messageForEmit={
+    const attachments = await Promise.all(files.map(file => uploadMedia(file.path)));
+    console.log(req.id)
+
+    const messageForDb = {
+        content: "",
+        attachments: attachments.map(a => ({
+            publicId: a.public_id,
+            url: a.secure_url
+        })),
+        sender: req.id,
+        name: req.user.name,
+        chat: chatId
+    }
+    const message = await Message.create(messageForDb)
+
+    const messageForEmit = {
         ...messageForDb,
-        sender:{
-            _id:req.id,
-            name:req.user.name,
-        }
-
+        sender: {
+            _id: req.id,
+            name: req.user.name,
+        },
+        chat: chatId,
     }
-    emitEvent(req, NEW_MESSAGE, chat.members, {
-        message: messageForRealTime,
-        chatId,
-      });
-    
-      emitEvent(req, NEW_MESSAGE_ALERT, chat.members, { chatId });
-    
-      return res.status(200).json({
+    emitEvent(req, NEW_ATTACHMENT_ALERT, chat.members, {
+        message: messageForEmit,
+        chatId
+    })
+
+    emitEvent(req, NEW_MESSAGE_ALERT, chat.members, { chatId });
+
+    return res.status(200).json({
         success: true,
         message,
-      });
+    });
+})
+
+export const getChatDetails = catchAsync(async (req, res, next) => {
+    if (req.query.populate == 'true') {
+        const chat = await Chat.findById(req.params.id).populate('members', 'name avatar').lean()
+        if (!chat) {
+            throw new AppError("Chat not found", 404)
+        }
+        chat.members = chat.members.map(({ _id, name, avatar }) => ({
+            _id,
+            name,
+            avatar: avatar?.url
+        }))
+        return res.status(200).json({
+            success: true,
+            chat
+        })
+    }
+    else {
+        const chat = await Chat.findById(req.params.id).lean()
+        if (!chat) {
+            throw new AppError("Chat not found", 404)
+        }
+        return res.status(200).json({
+            success: true,
+            chat
+        })
+    }
+})
+
+export const renameGroup = catchAsync(async (req, res, next) => {
+    const chatId = req.params.id
+    const { name } = req.body
+
+    const chat = await Chat.findById(chatId)
+    if (!chat) {
+        throw new AppError("Chat not found", 404)
+    }
+    if (!chat.members.some(member => member.equals(req.id))) {
+        throw new AppError("You are not a member of this group", 400);
+    }
+    if (!chat.creator.equals(req.id)) {
+        throw new AppError("You are not authorized to rename this group", 403);
+    }
+    if (!chat.isGroupChat) {
+        throw new AppError("This is not a group chat", 400)
+    }
+    if (!name?.trim()) {
+        throw new AppError("Please provide a group name", 400)
+    }
+    chat.name = name.trim()
+    await chat.save()
+    emitEvent(req, ALERT, chat.members, `Group name changed to ${name}`)
+    emitEvent(req, REFETCH_CHATS, chat.members)
+    return res.status(200).json({
+        success: true,
+        message: "Group name changed successfully",
+        chat
+    })
+})
+
+export const deleteChat = catchAsync(async (req, res, next) => {
+    const chatId = req.params.id
+
+    const chat = await Chat.findById(chatId)
+    if (!chat) {
+        throw new AppError("Chat not found", 404)
+    }
+    if (!chat.members.some(member => member.equals(req.id))) {
+        throw new AppError("You are not a member of this group", 400);
+    }
+    const members = chat.members
+    if (chat.isGroupChat && !chat.creator.equals(req.id)) {
+        throw new AppError("You are not authorized to delete this group", 403)
+    }
+    if (chat.isGroupChat && !chat.members.includes(req.id)) {
+        throw new AppError("You are not a member of this group", 400)
+    }
+
+    const messagesWithAttachments = await Message.find({
+        chat: chatId,
+        attachments: { $exists: true, $ne: [] }
+    })
+
+    const public_ids = messagesWithAttachments.map(message => message.attachments.map(a => a.publicId)).flat()
+    if (public_ids.length > 0) {
+
+        await Promise.all(
+            [public_ids.map(public_id => deleteMediaFromCloudinary(public_id)),
+            chat.deleteOne(),
+            Message.deleteMany({ chat: chatId })
+            ])
+        emitEvent(req, ALERT, members, `Chat deleted`)
+        emitEvent(req, REFETCH_CHATS, members)
+    }
+    return res.status(200).json({
+        success: true,
+        message: "Chat deleted successfully"
+    })
+})
+
+export const getMessages = catchAsync(async (req, res, next) => {
+    const chatId = req.params.id
+    const {page=1}=req.query
+    const limit=20
+    const skip=(page-1)*limit
+
+    const [messages,totalMessageCount] = await  Promise.all([
+        Message.find({ chat: chatId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('sender', 'name')
+        .lean(),
+        Message.countDocuments({ chat: chatId })
+    ])
+    const totalPages=Math.ceil(totalMessageCount/limit)
+
+    if (!messages) {
+        throw new AppError("No messages found", 404)
+    }
+
+    return res.status(200).json({
+        success: true,
+        messages,
+        totalPages,
+        totalMessageCount,
+        currentPage:page
+    })
 })

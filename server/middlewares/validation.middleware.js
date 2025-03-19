@@ -59,16 +59,6 @@ export const commonValidations = {
             .withMessage('Name must be between 2 and 50 characters')
             .matches(/^[a-zA-Z\s]*$/)
             .withMessage('Name can only contain letters and spaces'),
-
-    price:
-        body('price')
-            .isFloat({ min: 0 })
-            .withMessage('Price must be a positive number'),
-
-    url:
-        body('url')
-            .isURL()
-            .withMessage('Please provide a valid URL')
 };
 
 // User validation chains
@@ -102,7 +92,6 @@ export const validatePasswordChange = validate([
         .withMessage('Password must contain at least one number, one uppercase letter, one lowercase letter, and one special character')
 ]);
 
-export const validateDescription = validate([
     body('description')
         .isObject()
         .withMessage('Description must be an object')
@@ -127,4 +116,3 @@ export const validateDescription = validate([
         .trim()
         .notEmpty()
         .withMessage('Proposed methodology is required'),
-]);

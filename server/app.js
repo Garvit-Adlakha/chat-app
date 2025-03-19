@@ -12,7 +12,6 @@ import connectDB from './database/db.js';
 dotenv.config();
 
 await connectDB();
-// createUser(10)
 
 const app = express();
 const Port=process.env.PORT || 5000;
@@ -74,11 +73,8 @@ app.use((req,res)=>{
 
 // Global Error handler
 import { errorHandler } from './middlewares/error.middleware.js';
-import { createUser } from './seeders/user.js';
 
 app.use(errorHandler)
-
-
 //server
 server.listen(Port, () => {
     console.log(`Server running on port ${Port} in ${process.env.NODE_ENV} mode`)

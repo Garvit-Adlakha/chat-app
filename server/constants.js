@@ -1,3 +1,5 @@
 export const DB_Name="chat-app"
 export const ALERT="ALERT"
 export const REFETCH_CHATS="REFETCH_CHATS"
+export const NEW_MESSAGE_ALERT="NEW_MESSAGE_ALERT"
+export const NEW_ATTACHMENT_ALERT="NEW_ATTACHMENT"

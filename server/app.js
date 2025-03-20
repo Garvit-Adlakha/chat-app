@@ -12,7 +12,6 @@ import connectDB from './database/db.js';
 dotenv.config();
 
 await connectDB();
-
 const app = express();
 const Port=process.env.PORT || 5000;
 const server=createServer(app);

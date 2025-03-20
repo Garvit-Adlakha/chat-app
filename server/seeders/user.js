@@ -15,7 +15,7 @@ const createUser=async(numUsers)=>{
                 password:"password",
                 avatar:{
                     url:faker.image.avatar(),
-                    publicId:faker.system.fileName()
+                    public_id:faker.system.fileName()
                 }
            })
            usersPromise.push(tempUser)

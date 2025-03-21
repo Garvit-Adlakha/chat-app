@@ -4,10 +4,14 @@ export const mockGroups = [
     { id: "group3", name: "Gaming Squad", icon: "🎮" }
 ];
 
-export const mockCurrentUser = {
-    id: "user1",
+export const mockCurrentUser: User = {
+    _id: "user1",
     name: "John Doe",
-    avatar: "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+    email: "john.doe@example.com",
+    avatar: {
+        url: "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+    },
+    isOnline: true
 };
 
 export const mockFriends = [

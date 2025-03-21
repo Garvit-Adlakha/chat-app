@@ -25,6 +25,7 @@ const chatData = {
             name: "Alice Smith",
             email: "alice@example.com",
             avatar: { url: "https://api.dicebear.com/6.x/avataaars/svg?seed=Alice" }
+            
         },
         // {
         //     _id: "user3",
@@ -79,7 +80,7 @@ export const ChatHeader = ({ name, avatar, isOnline }) => {
                     onClick={clickHandler}
                     >
                     <div className="relative">
-                        <div className="avatar avatar-online ">
+                        <div className="avatar">
                             <div className="w-12 rounded-full">
                                 <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
                             </div>

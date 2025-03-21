@@ -32,7 +32,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ user, onClick, isActive 
             <img
                 src={user.avatar.url}
                 alt={user.name}
-                className="w-10 h-10"
+                className="w-10 h-10 rounded-full"
             />
             <span 
                 className={`

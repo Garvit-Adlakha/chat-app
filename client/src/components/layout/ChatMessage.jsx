@@ -2,44 +2,6 @@ import PropTypes from 'prop-types';
 import { useRef, useEffect } from 'react';
 
 // Mock data for testing
-const dummyMessages = [
-    {
-        id: 1,
-        avatar: "https://api.dicebear.com/6.x/avataaars/svg?seed=Felix",
-        sender: {
-            id: "user1",
-            name: "John Doe"
-        },
-        content: "Hey, how are you?",
-        timestamp: "10:30 AM",
-        status: "delivered",
-        isSender:true
-    },
-    {
-        id: 2,
-        avatar: "https://api.dicebear.com/6.x/avataaars/svg?seed=Alice",
-        sender: {
-            id: "user2",
-            name: "Alice Smith"
-        },
-        content: "I'm doing great! How about you?",
-        timestamp: "10:31 AM",
-        status: "seen",
-        isSender: false
-    },
-    {
-        id: 3,
-        avatar: "https://api.dicebear.com/6.x/avataaars/svg?seed=John",
-        sender: {
-            id: "user1",
-            name: "John Doe"
-        },
-        content: "Just working on some React code. This chat app is coming along nicely!",
-        timestamp: "10:32 AM",
-        status: "sent",
-        isSender: true
-    }
-];
 
 const MessageStatus = ({ status }) => {
     const statusConfig = {
@@ -95,8 +57,7 @@ const Message = ({ message, isSender }) => (
 
 export const ChatMessage = ({ messages, currentUserId = 'user1' }) => {
     const messagesEndRef = useRef(null);
-    const chatMessages = dummyMessages;
-
+    const chatMessages = messages
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
@@ -108,7 +69,8 @@ export const ChatMessage = ({ messages, currentUserId = 'user1' }) => {
     return (
         <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-transparent">
             {chatMessages.map((message, index) => {
-                const isSender = message.sender.id === currentUserId;
+                const isSender = message.sender === currentUserId;
+                console.log(message.sender)
                 const showAvatar = index === 0 || 
                     chatMessages[index - 1].sender.id !== message.sender.id;
                 
@@ -159,9 +121,6 @@ ChatMessage.propTypes = {
     currentUserId: PropTypes.string
 };
 
-ChatMessage.defaultProps = {
-    messages: dummyMessages,
-    currentUserId: 'user1'
-};
+
 
 export default ChatMessage;

@@ -1,16 +1,31 @@
-import ChatWindow from '../components/chat/ChatWindow'
-import ChatWindowOnStart from '../components/chat/ChatWindowOnStart'
-import AppLayout from '../components/layout/AppLayout'
+import { useParams } from 'react-router-dom';
+import ChatWindow from '../components/chat/ChatWindow';
+import ChatWindowOnStart from '../components/chat/ChatWindowOnStart';
+import AppLayout from '../components/layout/AppLayout';
+import { useEffect, useState } from 'react';
 
 const MainChat = () => {
-  const isChatWindow=true
-  return (
-    <main>
-      {isChatWindow ? <ChatWindow />:<ChatWindowOnStart />}
-      
-    </main>
-  )
-}
+    const { chatId } = useParams();
+    const [key, setKey] = useState(0); // Add key for forcing re-render
 
-const MainChatComponent = AppLayout()(MainChat)
-export default MainChatComponent 
+    useEffect(() => {
+        // Force re-render of ChatWindow when chatId changes
+        setKey(prevKey => prevKey + 1);
+    }, [chatId]);
+
+    return (
+        <main className='h-[calc(100vh-4rem)] '>
+            {chatId ? (
+                <ChatWindow 
+                    key={key} // Add key prop
+                    chatId={chatId} 
+                />
+            ) : (
+                <ChatWindowOnStart />
+            )}
+        </main>
+    );
+};
+
+const MainChatComponent = AppLayout()(MainChat);
+export default MainChatComponent;

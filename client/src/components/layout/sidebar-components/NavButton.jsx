@@ -8,7 +8,7 @@ export const NavButton = ({
 }) => (
     <button
         className={`
-            p-2 rounded-md cursor-pointer transition-colors
+            p-2 rounded-md cursor-pointer transition-colors relative
             ${isActive 
                 ? 'bg-blue-500 text-white' 
                 : 'bg-transparent hover:bg-neutral-300 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200'

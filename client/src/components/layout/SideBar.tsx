@@ -27,7 +27,7 @@ interface NavigationItem {
 }
 
 export const SideBar: React.FC = () => {
-    const [activeSection, setActiveSection] = useState<ActiveSection>('groups');
+    const [activeSection, setActiveSection] = useState<ActiveSection>('direct');
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
     const [requestCount, setRequestCount] = useState(3);
     const { isOpen } = useSidebar();  // Changed from open to isOpen for clarity
@@ -87,7 +87,7 @@ export const SideBar: React.FC = () => {
                     className="
                         bg-neutral-200 dark:bg-neutral-900 
                         flex flex-col items-center 
-                        py-3 w-16 h-full flex-shrink-0 
+                        py-2 w-16 h-full flex-shrink-0 
                         shadow-md backdrop-blur-2xl rounded-2xl mr-2
                     "
                     aria-label="Main navigation"
@@ -106,6 +106,7 @@ export const SideBar: React.FC = () => {
                                 <NavButton
                                     key={item.id}
                                     {...item}
+                                    badge={item.badge}
                                     aria-label={item.label}
                                 />
                             ))}

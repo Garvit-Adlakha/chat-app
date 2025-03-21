@@ -210,3 +210,53 @@ export const getAllNotifications = catchAsync(async (req, res, next) => {
 })
 
 //todo :: getmyfriends and add validations
+export const getMyFriends = catchAsync(async (req, res, next) => {
+    const chatId = req.query?.chatId;
+
+    // Find all non-group chats where user is a member
+    const chats = await Chat.find({
+        members: req.id,
+        isGroupChat: false,
+    }).populate("members", "name avatar");
+
+    if (!chats.length) {
+        return res.status(200).json({
+            success: true,
+            friends: [],
+        });
+    }
+
+    // Extract friends from chats
+    const friends = chats.map(({members}) => {
+        const friend = members.find(member => member._id.toString() !== req.id.toString());
+        console.log(friend)
+        return {
+            _id: friend._id,
+            name: friend.name,
+            avatar: friend.avatar.url
+        };
+    });
+
+    // If chatId is provided, filter out members already in that chat
+    if (chatId) {
+        const chat = await Chat.findById(chatId);
+        if (!chat) {
+            throw new AppError("Chat not found", 404);
+        }
+
+        const availableFriends = friends.filter(
+            (friend) =>{ 
+               return !chat.members.includes(friend._id)}
+        );
+
+        return res.status(200).json({
+            success: true,
+            friends: availableFriends,
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        friends,
+    });
+});

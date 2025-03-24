@@ -2,21 +2,34 @@ import { faker, simpleFaker } from "@faker-js/faker";
 import { Chat } from "../models/chat.model.js";
 import { Message } from "../models/message.model.js";
 import { User } from "../models/user.model.js";
+
 const createSingleChats = async (numChats) => {
   try {
     const users = await User.find().select("_id");
+    
+    if (users.length < 2) {
+      console.error("Not enough users to create single chats");
+      process.exit(1);
+    }
 
     const chatsPromise = [];
 
-    for (let i = 0; i < users.length; i++) {
-      for (let j = i + 1; j < users.length; j++) {
-        chatsPromise.push(
-          Chat.create({
-            name: faker.lorem.words(2),
-            members: [users[i], users[j]],
-          })
-        );
-      }
+    for (let i = 0; i < numChats; i++) {
+      // Select two random users
+      const user1Index = Math.floor(Math.random() * users.length);
+      let user2Index;
+      
+      // Make sure user2 is different from user1
+      do {
+        user2Index = Math.floor(Math.random() * users.length);
+      } while (user2Index === user1Index);
+      
+      chatsPromise.push(
+        Chat.create({
+          name: faker.lorem.words(2),
+          members: [users[user1Index], users[user2Index]],
+        })
+      );
     }
 
     await Promise.all(chatsPromise);

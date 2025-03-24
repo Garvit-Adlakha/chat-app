@@ -88,39 +88,39 @@ export const signout = catchAsync(async (req, res, next) => {
         });
 });
 
-export const searchUser = catchAsync(async (req, res, next) => {
-    const { name } = req.query;
-    console.log(req.id)
-    const myChats = await Chat.find({ isGroupChat: false, members: req.id })
-    const memberIds = myChats.flatMap(chat =>
-        chat.members
-    );
-    const uniqueMembers = [...new Set(memberIds)];
 
-    const allUsersExceptUniqueMembers = await User.find({
-        _id: { $nin: uniqueMembers },
-        name: { $regex: name, $options: "i" },
-    })
-
-    const users = allUsersExceptUniqueMembers.map(({ _id, name, avatar }) => ({
-        _id,
-        name,
-        avatar: avatar.url
-    }))
-
-    return res
-        .status(200)
-        .json({
-            status: "success",
-            message: "User found",
-            data: {
-                users
-            }
-        })
-})
-
+export const searchUser = catchAsync(async (req, res) => {
+    const { name = "" } = req.query;
+  
+    // Finding All my chats
+    const myChats = await Chat.find({ groupChat: false, members: req.id });
+  
+    //  extracting All Users from my chats means friends or people I have chatted with
+    const allUsersFromMyChats = myChats.flatMap((chat) => chat.members);
+  
+    // Finding all users except me and my friends
+    const allUsersExceptMeAndFriends = await User.find({
+      _id: { $nin: allUsersFromMyChats },
+      name: { $regex: name, $options: "i" },
+    });
+  
+    // Modifying the response
+    const users = allUsersExceptMeAndFriends.map(({ _id, name, avatar }) => ({
+      _id,
+      name,
+      avatar: avatar.url,
+    }));
+  
+    return res.status(200).json({
+      success: true,
+      users,
+    });
+  });
 export const sendFriendRequest = catchAsync(async (req, res, next) => {
     const { receiverId } = req.body;
+    if(receiverId.toString()===req.id.toString()){
+        throw new AppError("You cannot send request to yourself", 400)
+    }
     console.log(receiverId)
     const senderId = req.id;
     const existingRequest = await Request.findOne({
@@ -139,7 +139,10 @@ export const sendFriendRequest = catchAsync(async (req, res, next) => {
         .status(200)
         .json({
             status: "success",
-            message: "Request sent"
+            message: "Request sent",
+            data:{
+                request
+            }
         })
 })
 

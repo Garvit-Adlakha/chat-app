@@ -14,12 +14,7 @@ import {v4 as uuid} from 'uuid';
 
 
 
-
-
-
-
 dotenv.config();
-
 await connectDB();
 const Port = process.env.PORT || 5000;
 const app = express();
@@ -40,7 +35,7 @@ const io = new Server(server, {
 const limiter = rateLimit(
     {
         windowMs: 15 * 60 * 1000,
-        max: 100,
+        max: 1000,
         message: 'Too many request from this IP, please try again after 15 minutes'
     }
 )
@@ -65,7 +60,7 @@ if (process.env.NODE_ENV === 'development') {
 
 //cors config
 const corsOptions = {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: process.env.CLIENT_URL || "http://localhost:3000/",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
     allowedHeaders: ["Content-Type", "Authorization"]

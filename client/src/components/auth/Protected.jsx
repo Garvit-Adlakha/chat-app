@@ -1,12 +1,13 @@
 import { Navigate, Outlet } from "react-router-dom";
+import { AppLayoutLoader } from "../layout/Loaders";
 
-const Protected = ({ children, user, loading = false, redirect = '/login' }) => {
+const Protected = ({ children, user, loading , redirect = '/login' }) => {
     if (loading) {
-        return <div>Loading...</div>; // You can replace this with a spinner or custom loading component
+        <AppLayoutLoader />
     }
 
     if (!user) {
-        return <Navigate to={redirect} />;
+        return <Navigate to={redirect} replace/>;
     }
     
     return children?children:<Outlet />;

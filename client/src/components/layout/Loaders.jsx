@@ -1,17 +1,40 @@
 export const LayoutLoader = () => {
     return (
         <>
-        <div className="grid grid-cols-4 gap-4 max-h-[calc(100vh-4rem)]">
-            <div className="first hidden md:inline-block md:col-span-1 h-[calc(100vh-4rem)] ">
-                <div className="skeleton mt-4 h-[calc(100vh-4rem)] w-full "></div>
+            <div className="grid grid-cols-4 max-h-[calc(100vh-4rem)] mt-4 h-full">
+                <div className="hidden md:inline-block md:col-span-1 h-full">
+                    {/* Sidebar Skeleton */}
+                    <div className="flex h-full">
+                        {/* Navigation Column */}
+                        <div className="w-16 bg-base-200 h-full rounded-2xl mr-2">
+                            <div className="flex flex-col items-center gap-4 p-4">
+                                <div className="skeleton w-10 h-10 rounded-full"></div>
+                                <div className="skeleton w-8 h-8"></div>
+                                <div className="skeleton w-8 h-8"></div>
+                                <div className="skeleton w-8 h-8"></div>
+                            </div>
+                        </div>
+                        {/* Sidebar Content */}
+                        <div className="flex-1 bg-base-100 rounded-2xl p-4">
+                            <div className="skeleton h-8 w-full mb-4"></div>
+                            <div className="flex flex-col gap-4">
+                                {[1,2,3,4,5].map(i => (
+                                    <div key={i} className="flex items-center gap-4">
+                                        <div className="skeleton w-12 h-12 rounded-full"></div>
+                                        <div className="flex-1">
+                                            <div className="skeleton h-4 w-full"></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-span-3 h-full mr-3">
+                    <div className="skeleton h-full w-full"></div>
+                </div>
+                <div className=""></div>
             </div>
-            <div className="col-span-3">
-            <div className="skeleton h-[calc(100vh-4rem)] w-full"></div>
-            </div>
-            <div className="">
-
-            </div>
-        </div>
         </>
     )
 }
@@ -27,9 +50,9 @@ export const AppLayoutLoader = () => {
                     </div>
                 </div>
             </div>
-            <div className="grid grid-cols-4 gap-4 max-h-[calc(100vh-4rem)]">
+            <div className="grid grid-cols-4 max-h-[calc(100vh-4rem)] mt-4 h-full">
                 {/* Sidebar skeleton */}
-                <div className="first hidden md:inline-block md:col-span-1 h-[calc(100vh-4rem)]">
+                <div className="hidden md:inline-block md:col-span-1 h-full">
                     <div className="flex h-full">
                         {/* Navigation column */}
                         <div className="w-16 bg-neutral-200 dark:bg-neutral-900 h-full rounded-2xl mr-2 flex flex-col items-center py-6">
@@ -57,13 +80,15 @@ export const AppLayoutLoader = () => {
                 </div>
                 
                 {/* Main content skeleton */}
-                <div className="col-span-4 md:col-span-3 h-[calc(100vh-4rem)] p-4">
+                <div className="col-span-4 md:col-span-3 h-full mr-3">
                     <div className="skeleton h-12 w-full mb-6"></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="skeleton h-40 w-full"></div>
                         <div className="skeleton h-40 w-full"></div>
                     </div>
                     <div className="skeleton h-60 w-full mt-6"></div>
+                </div>
+                <div className="">
                 </div>
             </div>
         </>

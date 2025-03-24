@@ -1,22 +1,13 @@
+import { useQuery } from '@tanstack/react-query';
 import React from 'react';
+import userService from '../../../service/userService';
 
-interface User {
-    _id: string;
-    name: string;
-    email: string;
-    avatar: {
-        url: string;
-    };
-    isOnline?: boolean;
-}
+export const UserAvatar = ({ onClick, isActive }) => {
+    const{data: user} = useQuery({
+        queryKey: ['user'],
+        queryFn: userService.currentUser,
+    });
 
-interface UserAvatarProps {
-    user: User;
-    onClick: () => void;
-    isActive: boolean;
-}
-
-export const UserAvatar: React.FC<UserAvatarProps> = ({ user, onClick, isActive }) => {
     return (
         <button
             onClick={onClick}

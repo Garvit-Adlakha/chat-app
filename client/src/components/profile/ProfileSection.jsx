@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     IconCamera,
     IconCircleDot,
@@ -7,32 +7,44 @@ import {
 } from '@tabler/icons-react';
 import Avatar from '../shared/Avatar';
 import VisuallyHiddenInput from '../shared/VisuallyHiddenInput';
+import { useQuery } from "@tanstack/react-query";
+import userService from "../../service/userService";
 
 const mockGroups = [
     { id: "group1", name: "Team Alpha", icon: "🚀" },
     { id: "group2", name: "Project Beta", icon: "🔬" },
     { id: "group3", name: "Gaming Squad", icon: "🎮" }
 ];
-
-const mockCurrentUser = {
-    id: "user1",
-    name: "John Doe",
-    avatar: "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-};
-
-const mockFriends = [
-    { id: "friend1", name: "Alice Smith", avatar: "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp", online: true },
-    { id: "friend2", name: "Bob Johnson", avatar: "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp", online: false },
-    { id: "friend3", name: "Carol Williams", avatar: "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp", online: true }
-];
 const ProfileSection = () => {
+    const {data: currentUser, isLoading: isLoadingUser} = useQuery({
+        queryKey: ["user"],
+        queryFn: userService.currentUser,
+    });
+
+    const {data: friends = [], isLoading: isLoadingFriends} = useQuery({
+        queryKey: ["friends"],
+        queryFn: userService.UserFriends,
+    });
+
     const [isEditing, setIsEditing] = useState(false);
     const [editedUser, setEditedUser] = useState({
-        name: mockCurrentUser.name,
-        avatar: mockCurrentUser.avatar,
-        bio: "Hello, I'm using Chat App!"
+        name: "",
+        avatar: "",
+        bio: "",
     });
-    const [previewAvatar, setPreviewAvatar] = useState(editedUser.avatar);
+    const [previewAvatar, setPreviewAvatar] = useState("");
+
+    // Update editedUser when currentUser data loads
+    useEffect(() => {
+        if (currentUser) {
+            setEditedUser({
+                name: currentUser.name || "",
+                avatar: currentUser.avatar?.url || "",
+                bio: currentUser.bio || "Hello, I'm using Chat App!",
+            });
+            setPreviewAvatar(currentUser.avatar?.url || "");
+        }
+    }, [currentUser]);
 
     const handleAvatarChange = (event) => {
         const file = event.target.files?.[0];
@@ -50,6 +62,12 @@ const ProfileSection = () => {
         // TODO: Implement save logic with API call
         setIsEditing(false);
     };
+
+    if (isLoadingUser || isLoadingFriends) {
+        return <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>;
+    }
 
     return (
         <div className="p-4 max-w-md mx-auto">
@@ -127,7 +145,7 @@ const ProfileSection = () => {
                                 <span className="text-sm font-medium">Friends</span>
                             </div>
                             <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-                                {mockFriends.length}
+                                {friends?.length || 0}
                             </span>
                         </div>
                         

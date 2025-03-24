@@ -67,7 +67,7 @@ export const ChatMessage = ({ messages, currentUserId = 'user1' }) => {
     }, [messages]);
 
     return (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-transparent z=10">
             {chatMessages.map((message, index) => {
                 const isSender = message.sender === currentUserId;
                 console.log(message.sender)

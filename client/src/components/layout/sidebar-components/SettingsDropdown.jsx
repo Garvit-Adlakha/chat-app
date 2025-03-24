@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
 import { IconSettings, IconMoon, IconSun, IconLogout } from '@tabler/icons-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import userService from '../../../service/userService';
+import { useNavigate } from 'react-router-dom';
 
-export const SettingsDropdown: React.FC = () => {
+export const SettingsDropdown = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isDark, setIsDark] = useState(false);
-
+    const navigate=useNavigate()
+    const queryClient=useQueryClient()
+    const logoutMutation=useMutation({
+        mutationFn:userService.logout,
+        onSuccess:()=>{
+            console.log("logout success")
+            queryClient.setQueryData(['user'],null)
+        },
+        onError:(error)=>{
+            console.log(error)
+        }
+    })
     const toggleTheme = () => {
         setIsDark(!isDark);
         document.documentElement.classList.toggle('dark');
     };
 
-    const handleLogout = () => {
-        // TODO: Implement logout functionality
-        console.log('Logging out...');
+    const handleLogout = (e) => {
+        e.preventDefault();
+        logoutMutation.mutate()
+        navigate('/login')
     };
 
     return (

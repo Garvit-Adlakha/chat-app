@@ -74,7 +74,7 @@ export const ChatHeader = ({ name, avatar, isOnline }) => {
     
     return (
     <>
-        <header className="p-2 mx-12 bg-neutral-800/80 backdrop-blur-xl">
+        <header className="p-2 mx-12 bg-neutral-800/80 backdrop-blur-xl z-10">
             <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-4 cursor-pointer"
                     onClick={clickHandler}

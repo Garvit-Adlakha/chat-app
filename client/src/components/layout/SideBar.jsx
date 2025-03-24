@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { Sidebar, SidebarBody, useSidebar } from "../ui/sidebar";
-import { IconProps } from "@tabler/icons-react";
 import { 
     IconUsers, 
     IconMessage, 
-    IconSettings, 
     IconHeartQuestion
 } from "@tabler/icons-react";
 import GroupsSection from '../chat/GroupsSection';
@@ -12,27 +10,15 @@ import ProfileSection from '../profile/ProfileSection';
 import DirectMessagesSection from '../chat/DirectMessagesSection';
 import FriendRequestsSection from '../chat/FriendRequestsSection';
 import { NavButton, SettingsDropdown, UserAvatar } from "./sidebar-components";
-import { mockGroups, mockCurrentUser, mockFriends } from "../../mocks/data";
+import { mockGroups } from "../../mocks/data";
+    
 
-// Define types
-type ActiveSection = 'direct' | 'groups' | 'requests' | 'profile';
-
-interface NavigationItem {
-    id: ActiveSection;
-    icon: React.FC<IconProps>;
-    label: string;
-    isActive: boolean;
-    onClick: () => void;
-    badge?: number;
-}
-
-export const SideBar: React.FC = () => {
-    const [activeSection, setActiveSection] = useState<ActiveSection>('direct');
+export const SideBar = () => {
+    const [activeSection, setActiveSection] = useState('direct');
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
     const [requestCount, setRequestCount] = useState(3);
     const { isOpen } = useSidebar();  // Changed from open to isOpen for clarity
-
-    const navigationItems: NavigationItem[] = [
+    const navigationItems= [
         {
             id: 'direct',
             icon: IconMessage,
@@ -66,11 +52,7 @@ export const SideBar: React.FC = () => {
                 return <ProfileSection />;
             case 'direct':
                 return (
-                    <DirectMessagesSection 
-                        friends={mockFriends} 
-                        showOnlineOnly={showOnlineOnly}
-                        setShowOnlineOnly={setShowOnlineOnly}
-                    />
+                    <DirectMessagesSection />
                 );
             case 'requests':
                 return <FriendRequestsSection />;
@@ -94,7 +76,6 @@ export const SideBar: React.FC = () => {
                 >
                     {/* User Avatar */}
                     <UserAvatar 
-                        user={mockCurrentUser}
                         onClick={() => setActiveSection('profile')}
                         isActive={activeSection === 'profile'}
                     />

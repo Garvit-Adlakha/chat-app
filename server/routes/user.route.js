@@ -10,7 +10,7 @@ router.post('/signin',loginUser)
 
 router.get('/profile',isAuthenticated,getMyProfile)
 
-router.get('/signout',isAuthenticated,signout)
+router.post('/signout',isAuthenticated,signout)
 
 router.get('/search',isAuthenticated,searchUser)
 

@@ -1,8 +1,29 @@
 import { useState, useEffect } from "react";
 import { IconX, IconSearch, IconUserPlus } from "@tabler/icons-react";
-
+import { useQuery,useMutation, useQueryClient } from "@tanstack/react-query";
+import userService from "../../service/userService";
 const FriendSearch = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState("");
+
+    const {data: users = [], isLoading} = useQuery({
+        queryKey: ["users", searchQuery],
+        queryFn: () => userService.UserSearch(searchQuery),
+        enabled: !!searchQuery,
+    });
+    const queryClient = useQueryClient();
+    const mutation=useMutation({
+        mutationFn: userService.SendFriendRequest,
+        onSuccess:()=>{
+            queryClient.invalidateQueries("users")
+        },
+        onError:(error)=>{
+            console.log(error)
+        }
+    })
+    const handleAddFriend = (id) => {
+        mutation.mutate(id)
+        console.log('Added friend:', id);
+    }
 
     // Prevent scrolling when modal is open
     useEffect(() => {
@@ -18,11 +39,13 @@ const FriendSearch = ({ isOpen, onClose }) => {
 
     if (!isOpen) return null;
 
-    // Dummy user data (Replace with API data)
-    const users = [
-        { id: 1, name: "John Doe", email: "john@example.com", avatar: "https://i.pravatar.cc/50?img=1" },
-        { id: 2, name: "Jane Smith", email: "jane@example.com", avatar: "https://i.pravatar.cc/50?img=2" },
-    ];
+    if(isLoading){
+        return (
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            </div>
+        )
+    }
 
     return (
         <div 
@@ -61,7 +84,7 @@ const FriendSearch = ({ isOpen, onClose }) => {
                     <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                         {users.map((user) => (
                             <div 
-                                key={user.id} 
+                                key={user._id} 
                                 className="flex items-center justify-between p-3 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
                             >
                                 <div className="flex items-center gap-3">
@@ -83,7 +106,9 @@ const FriendSearch = ({ isOpen, onClose }) => {
                                         </p>
                                     </div>
                                 </div>
-                                <button className="btn btn-sm btn-primary">
+                                <button className="btn btn-sm btn-primary"
+                                onClick={() => handleAddFriend(user._id)}
+                                >
                                     <IconUserPlus className="w-4 h-4 mr-1" />
                                     Add
                                 </button>

@@ -22,7 +22,7 @@ export const MessageInput = ({ onSendMessage }) => {
     useClickOutside(emojiPickerRef, () => setShowEmojiPicker(false));
   
     return (
-      <footer className="p-4 bg-neutral-800/90 backdrop-blur-xl border-t border-neutral-700">
+      <footer className="p-4 bg-neutral-800/90 backdrop-blur-xl border-t border-neutral-700 z-10">
         <form onSubmit={handleSubmit} className="flex items-center gap-4">
           <label className="p-2 hover:bg-neutral-700 rounded-full transition-colors cursor-pointer">
             <input 

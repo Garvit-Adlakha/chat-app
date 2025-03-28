@@ -16,7 +16,7 @@ const DirectMessagesSection = () => {
         queryFn: () => chatService.UserChats(),
         enabled: true, 
     });
-
+    
     //update users based on search query
     const filteredUsers = users?.filter(user => user.name.toLowerCase().includes(searchQuery.toLowerCase()));
    
@@ -35,7 +35,6 @@ const DirectMessagesSection = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
             </div>
-
             {/* User List */}
             <div className="p-4 overflow-y-auto flex-1">
                 {isLoading ? (

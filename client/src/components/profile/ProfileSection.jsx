@@ -9,18 +9,29 @@ import Avatar from '../shared/Avatar';
 import VisuallyHiddenInput from '../shared/VisuallyHiddenInput';
 import { useQuery } from "@tanstack/react-query";
 import userService from "../../service/userService";
+import PropTypes from 'prop-types';
 
 const mockGroups = [
     { id: "group1", name: "Team Alpha", icon: "🚀" },
     { id: "group2", name: "Project Beta", icon: "🔬" },
     { id: "group3", name: "Gaming Squad", icon: "🎮" }
 ];
-const ProfileSection = () => {
+
+const ProfileSection = ({ userId = null }) => {
+    // Current user query
     const {data: currentUser, isLoading: isLoadingUser} = useQuery({
         queryKey: ["user"],
         queryFn: userService.currentUser,
     });
 
+    // Profile user query (either current user or other user)
+    const {data: profileUser, isLoading: isLoadingProfile} = useQuery({
+        queryKey: ["userProfile", userId],
+        queryFn: () => userId ? userService.userProfile(userId) : userService.currentUser(),
+        enabled: !!(userId || currentUser),
+    });
+
+    // Friends query remains unchanged
     const {data: friends = [], isLoading: isLoadingFriends} = useQuery({
         queryKey: ["friends"],
         queryFn: userService.UserFriends,
@@ -34,17 +45,20 @@ const ProfileSection = () => {
     });
     const [previewAvatar, setPreviewAvatar] = useState("");
 
-    // Update editedUser when currentUser data loads
+    // Check if the profile belongs to the current user
+    const isCurrentUser = !userId || (currentUser?._id === userId);
+
+    // Update editedUser when profileUser data loads
     useEffect(() => {
-        if (currentUser) {
+        if (profileUser) {
             setEditedUser({
-                name: currentUser.name || "",
-                avatar: currentUser.avatar?.url || "",
-                bio: currentUser.bio || "Hello, I'm using Chat App!",
+                name: profileUser.name || "",
+                avatar: profileUser.avatar?.url || "",
+                bio: profileUser.bio || "Hello, I'm using Chat App!",
             });
-            setPreviewAvatar(currentUser.avatar?.url || "");
+            setPreviewAvatar(profileUser.avatar?.url || "");
         }
-    }, [currentUser]);
+    }, [profileUser]);
 
     const handleAvatarChange = (event) => {
         const file = event.target.files?.[0];
@@ -63,7 +77,7 @@ const ProfileSection = () => {
         setIsEditing(false);
     };
 
-    if (isLoadingUser || isLoadingFriends) {
+    if (isLoadingUser || isLoadingFriends || isLoadingProfile) {
         return <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>;
@@ -71,7 +85,7 @@ const ProfileSection = () => {
 
     return (
         <div className="p-4 max-w-md mx-auto">
-            <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
+            <div className=" backdrop-blur-2xl rounded-xl shadow-lg p-6">
                 <div className="flex flex-col items-center">
                     {/* Avatar Section */}
                     <div className="relative mb-4 group">
@@ -79,9 +93,9 @@ const ProfileSection = () => {
                             <Avatar
                                 src={previewAvatar}
                                 alt={editedUser.name}
-                                className="w-24 h-24 cursor-pointer transition-transform duration-200 group-hover:scale-105"
+                                className={`w-24 h-24 ${isCurrentUser ? 'cursor-pointer transition-transform duration-200 group-hover:scale-105' : ''}`}
                             />
-                            {isEditing && (
+                            {isEditing && isCurrentUser && (
                                 <label className="absolute inset-0 cursor-pointer bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                                     <IconCamera className="w-8 h-8 text-white" />
                                     <VisuallyHiddenInput 
@@ -97,7 +111,7 @@ const ProfileSection = () => {
 
                     {/* Name Section */}
                     <div className="w-full mb-4">
-                        {isEditing ? (
+                        {isEditing && isCurrentUser ? (
                             <input
                                 type="text"
                                 value={editedUser.name}
@@ -114,7 +128,7 @@ const ProfileSection = () => {
 
                     {/* Bio Section */}
                     <div className="w-full mb-6">
-                        {isEditing ? (
+                        {isEditing && isCurrentUser ? (
                             <textarea
                                 value={editedUser.bio}
                                 onChange={(e) => setEditedUser(prev => ({...prev, bio: e.target.value}))}
@@ -160,31 +174,37 @@ const ProfileSection = () => {
                         </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="mt-6 flex gap-3">
-                        <button 
-                            onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                            className={`px-6 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
-                                isEditing 
-                                    ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                                    : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-600'
-                            }`}
-                        >
-                            {isEditing ? 'Save Changes' : 'Edit Profile'}
-                        </button>
-                        {isEditing && (
+                    {/* Action Buttons - Only show for current user */}
+                    {isCurrentUser && (
+                        <div className="mt-6 flex gap-3">
                             <button 
-                                onClick={() => setIsEditing(false)}
-                                className="px-6 py-2 rounded-lg font-medium text-sm bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all duration-200"
+                                onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+                                className={`px-6 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                                    isEditing 
+                                        ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                                        : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-600'
+                                }`}
                             >
-                                Cancel
+                                {isEditing ? 'Save Changes' : 'Edit Profile'}
                             </button>
-                        )}
-                    </div>
+                            {isEditing && (
+                                <button 
+                                    onClick={() => setIsEditing(false)}
+                                    className="px-6 py-2 rounded-lg font-medium text-sm bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all duration-200"
+                                >
+                                    Cancel
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
     );
+};
+
+ProfileSection.propTypes = {
+    userId: PropTypes.string
 };
 
 export default ProfileSection;

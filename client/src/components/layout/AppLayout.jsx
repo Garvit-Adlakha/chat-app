@@ -2,10 +2,21 @@ import Title from "../shared/Title";
 import { SidebarProvider } from "../ui/sidebar";
 import Header from "./Header";
 import {SideBar} from "./SideBar";
-
+import useSocketStore from "../socket/Socket";
+import { useEffect } from "react";
 
 const AppLayout = () => (WrappedComponent) => {
     const WithLayout = (props) => {
+        const { socket, connect, disconnect } = useSocketStore();
+        useEffect(() => {
+            connect();
+            socket.on('connect', () => {
+                console.log('Socket connected:', socket.id);
+            });
+            return () => {
+                disconnect();
+            };
+        }, [connect, disconnect]);
         return (
             <>
                 <Title />

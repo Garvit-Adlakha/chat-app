@@ -3,49 +3,107 @@ import {
     IconVideo,
     IconDotsVertical
 } from '@tabler/icons-react';
-import { useReducer, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import ChatProfile from '../profile/ChatProfile';
 import { useClickOutside } from '../../hooks/UseClickOutside';
+import { useQuery } from '@tanstack/react-query';
+import chatService from '../../service/chatService';
+import userService from '../../service/userService';
 
-const chatData = {
-    _id: "chat123",
-    name:"Project Discussion",
-    isGroupChat: true,
-    description: "Team chat for discussing project updates",
-    createdAt: "2024-03-17T10:00:00.000Z",
-    members: [
-        {
-            _id: "user1",
-            name: "John Doe",
-            email: "john@example.com",
-            avatar: { url: "https://api.dicebear.com/6.x/avataaars/svg?seed=John" }
-        },
-        {
-            _id: "user2",
-            name: "Alice Smith",
-            email: "alice@example.com",
-            avatar: { url: "https://api.dicebear.com/6.x/avataaars/svg?seed=Alice" }
-            
-        },
-        // {
-        //     _id: "user3",
-        //     name: "Bob Johnson",
-        //     email: "bob@example.com",
-        //     avatar: { url: "https://api.dicebear.com/6.x/avataaars/svg?seed=Bob" }
-        // },
-        // {
-        //     _id: "user4",
-        //     name: "Emma Davis",
-        //     email: "emma@example.com",
-        //     avatar: { url: "https://api.dicebear.com/6.x/avataaars/svg?seed=Emma" }
-        // },
-        // {
-        //     _id: "user5",
-        //     name: "Michael Wilson",
-        //     email: "michael@example.com",
-        //     avatar: { url: "https://api.dicebear.com/6.x/avataaars/svg?seed=Michael" }
-        // }
-    ]
+export const ChatHeader = ({ chatId }) => {
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const ChatProfileRef = useRef(null);
+
+    // Fetch chat details
+    const { data: chatDetails, isLoading } = useQuery({
+        queryKey: ['chatDetails', chatId],
+        queryFn: () => chatService.getChatDetails(chatId),
+        enabled: !!chatId
+    });
+
+    const {data:user} = useQuery({
+        queryKey:['user'],
+        queryFn: userService.currentUser
+    });
+
+    useClickOutside(ChatProfileRef, () => setIsProfileOpen(false));
+
+    // Loading and null states remain unchanged
+    if (isLoading) {
+        return (
+            <header className="p-2 mx-12 bg-neutral-800/80 backdrop-blur-xl z-10">
+                <div className="animate-pulse flex justify-between items-center">
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-full bg-neutral-700" />
+                        <div className="space-y-2">
+                            <div className="h-4 w-24 bg-neutral-700 rounded" />
+                            <div className="h-3 w-16 bg-neutral-700 rounded" />
+                        </div>
+                    </div>
+                </div>
+            </header>
+        );
+    }
+
+    if (!chatDetails) return null;
+
+    // Get the other member's info for direct chats
+    const otherMember = !chatDetails.isGroupChat ? 
+        chatDetails.members.find(member => member._id !== user?._id) : 
+        null;
+
+    return (
+        <>
+            <header className="p-2 mx-12 bg-neutral-800/80 backdrop-blur-xl z-10">
+                <div className="flex justify-between items-center">
+                    <div 
+                        className="flex items-center space-x-4 cursor-pointer"
+                        onClick={() => setIsProfileOpen(true)}
+                    >
+                        <div className="avatar">
+                            {chatDetails.isGroupChat ? (
+                                <div className="tooltip" data-tip={chatDetails.members.slice(0, 3).map(m => m.name).join(', ')}>
+                                    <div className="w-12 rounded-full">
+                                        <img 
+                                            src={chatDetails.groupAvatar?.url}
+                                            alt={chatDetails.name}
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="w-12 rounded-full">
+                                    <img 
+                                        src={otherMember?.avatar}
+                                        alt={otherMember?.name}
+                                        className="object-cover"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-white">
+                                {chatDetails.name}
+                            </h3>
+                            <p className="text-xs text-neutral-400">
+                                {chatDetails.isGroupChat && `${chatDetails.members?.length} members`}
+                            </p>
+                        </div>
+                    </div>
+                    <ChatActions />
+                </div>
+            </header>
+
+            {isProfileOpen && (
+                <ChatProfile
+                    ref={ChatProfileRef}
+                    chat={chatDetails}
+                    isOpen={isProfileOpen}
+                    onClose={() => setIsProfileOpen(false)}
+                />
+            )}
+        </>
+    );
 };
 
 const ChatActions = () => {
@@ -61,48 +119,5 @@ const ChatActions = () => {
                 <IconDotsVertical className="w-5 h-5 text-neutral-300" />
             </button>
         </div>
-    );
-};
-
-export const ChatHeader = ({ name, avatar, isOnline }) => {
-    const [isProfileOpen,setIsProfileOpen]=useState(false);
-    const clickHandler=()=>{
-        setIsProfileOpen(true);
-    }
-    const ChatProfileRef=useRef(null)
-    useClickOutside(ChatProfileRef,()=>setIsProfileOpen(false))
-    
-    return (
-    <>
-        <header className="p-2 mx-12 bg-neutral-800/80 backdrop-blur-xl z-10">
-            <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-4 cursor-pointer"
-                    onClick={clickHandler}
-                    >
-                    <div className="relative">
-                        <div className="avatar">
-                            <div className="w-12 rounded-full">
-                                <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-semibold text-white">{name}</h3>
-                        <p className="text-xs text-neutral-400">{isOnline ? 'Online' : 'Offline'}</p>
-                    </div>
-                </div>
-                <ChatActions />
-            </div>
-        </header>
-        <main className='w-full h-full"'>
-        {
-            isProfileOpen && <ChatProfile  Ref={ChatProfileRef}
-            chat={chatData}
-            isOpen={isProfileOpen}
-            onClose={() => setIsProfileOpen(false)}
-            />
-        }
-        </main>
-        </>
     );
 };

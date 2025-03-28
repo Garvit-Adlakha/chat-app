@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 import {
     IconUserPlus,
     IconUsers,
@@ -9,16 +10,26 @@ import {
     IconPencil
 } from '@tabler/icons-react';
 import Avatar from '../shared/Avatar';
+import { useQuery } from '@tanstack/react-query';
+import userService from '../../service/userService';
+import ProfileSection from './ProfileSection';
 
 // Dummy data
-
-const ChatProfile = ({ chat = DUMMY_CHAT, isOpen, onClose }) => {
+const ChatProfile = ({ chat, isOpen, onClose }) => {
     const [isEditing, setIsEditing] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState(null);
     const [chatInfo, setChatInfo] = useState({
         name: '',
         description: '',
         members: []
     });
+    const {data:user} = useQuery({
+        queryKey:['user'],
+        queryFn: userService.currentUser
+    });
+    const clickHandler = (id) => {
+        setSelectedUserId(id);
+    };
 
     useEffect(() => {
         if (chat) {
@@ -51,6 +62,26 @@ const ChatProfile = ({ chat = DUMMY_CHAT, isOpen, onClose }) => {
         // TODO: Implement save functionality
         setIsEditing(false);
     };
+
+    const otherMember = !chat?.isGroupChat ? 
+        chat?.members.find(member => member._id !== user?._id) : 
+        null;
+
+    if (selectedUserId) {
+        return (
+            <dialog open className="modal modal-open backdrop-blur-sm bg-black z-50">
+            <div className="modal-box w-full max-w-md">
+                <button 
+                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-70" 
+                onClick={() => setSelectedUserId(null)}
+                >
+                <IconX className="w-5 h-5" />
+                </button>
+                <ProfileSection userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
+            </div>
+            </dialog>
+        )
+    }
 
     return (
         <dialog
@@ -103,8 +134,8 @@ const ChatProfile = ({ chat = DUMMY_CHAT, isOpen, onClose }) => {
                                 <div className="avatar mx-auto">
                                     <div className="w-24 rounded-full ring ring-primary ring-offset-2">
                                         <Avatar
-                                            src={chat?.members[0]?.avatar?.url}
-                                            alt={chat?.name}
+                                            src={otherMember?.avatar}
+                                            alt={otherMember?.name}
                                         />
                                     </div>
                                 </div>
@@ -133,7 +164,7 @@ const ChatProfile = ({ chat = DUMMY_CHAT, isOpen, onClose }) => {
                         ) : (
                             <div className="flex items-center justify-center gap-2">
                                 <h2 className="text-xl font-bold">
-                                    {chatInfo.name}
+                                    {chat?.isGroupChat ? chatInfo.name : otherMember?.name}
                                 </h2>
                                 {chat?.isGroupChat && (
                                     <button
@@ -200,9 +231,10 @@ const ChatProfile = ({ chat = DUMMY_CHAT, isOpen, onClose }) => {
                                         hover:bg-neutral-100 dark:hover:bg-neutral-700
                                         rounded-lg transition-colors
                                     "
+                                    onClick={()=>clickHandler(member._id)}
                                 >
                                     <Avatar
-                                        src={member.avatar?.url}
+                                        src={member.avatar}
                                         alt={member.name}
                                         className="w-8 h-8"
                                     />

@@ -1,33 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IconSettings, IconMoon, IconSun, IconLogout } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import userService from '../../../service/userService';
 import { useNavigate } from 'react-router-dom';
+import useUiStore from '../../../store/UiStore';
 
 export const SettingsDropdown = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [isDark, setIsDark] = useState(false);
-    const navigate=useNavigate()
-    const queryClient=useQueryClient()
-    const logoutMutation=useMutation({
-        mutationFn:userService.logout,
-        onSuccess:()=>{
-            console.log("logout success")
-            queryClient.setQueryData(['user'],null)
+    const { theme, toggleTheme } = useUiStore();
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const logoutMutation = useMutation({
+        mutationFn: userService.logout,
+        onSuccess: () => {
+            console.log("logout success");
+            queryClient.setQueryData(['user'], null);
         },
-        onError:(error)=>{
-            console.log(error)
+        onError: (error) => {
+            console.log(error);
         }
-    })
-    const toggleTheme = () => {
-        setIsDark(!isDark);
-        document.documentElement.classList.toggle('dark');
+    });
+
+    const handleThemeToggle = () => {
+        toggleTheme();
+        setIsOpen(false);
     };
 
     const handleLogout = (e) => {
         e.preventDefault();
-        logoutMutation.mutate()
-        navigate('/login')
+        logoutMutation.mutate();
+        navigate('/login');
     };
 
     return (
@@ -60,7 +62,7 @@ export const SettingsDropdown = () => {
                         animate-fadeIn
                     `}>
                         <button
-                            onClick={toggleTheme}
+                            onClick={handleThemeToggle}
                             className={`
                                 w-full px-4 py-2
                                 flex items-center gap-2
@@ -68,7 +70,7 @@ export const SettingsDropdown = () => {
                                 transition-colors
                             `}
                         >
-                            {isDark ? (
+                            {theme === 'dark' ? (
                                 <>
                                     <IconSun className="w-5 h-5" />
                                     <span>Light Mode</span>

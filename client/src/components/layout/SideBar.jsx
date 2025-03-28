@@ -11,13 +11,20 @@ import DirectMessagesSection from '../chat/DirectMessagesSection';
 import FriendRequestsSection from '../chat/FriendRequestsSection';
 import { NavButton, SettingsDropdown, UserAvatar } from "./sidebar-components";
 import { mockGroups } from "../../mocks/data";
+import { useQuery } from "@tanstack/react-query";
+import userService from "../../service/userService";
+import FriendsSection from "../chat/FriendsSection";
     
 
 export const SideBar = () => {
     const [activeSection, setActiveSection] = useState('direct');
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
-    const [requestCount, setRequestCount] = useState(3);
     const { isOpen } = useSidebar();  // Changed from open to isOpen for clarity
+    const{data:request}=useQuery({
+        queryKey:["requests"],
+        queryFn: userService.getAllNotifications
+    })
+    const [requestCount, setRequestCount] = useState(request?.length || 0);
     const navigationItems= [
         {
             id: 'direct',
@@ -32,6 +39,13 @@ export const SideBar = () => {
             label: 'Groups',
             isActive: activeSection === 'groups',
             onClick: () => setActiveSection('groups')
+        },
+        {
+            id:'Friends',
+            icon: IconUsers,
+            label: 'Friends',
+            isActive: activeSection === 'friends',
+            onClick: () => setActiveSection('friends')
         },
         {
             id: 'requests',
@@ -50,6 +64,8 @@ export const SideBar = () => {
         switch (activeSection) {
             case 'profile':
                 return <ProfileSection />;
+            case 'friends':
+                return <FriendsSection />
             case 'direct':
                 return (
                     <DirectMessagesSection />
@@ -57,7 +73,7 @@ export const SideBar = () => {
             case 'requests':
                 return <FriendRequestsSection />;
             default:
-                return <GroupsSection groups={mockGroups} />;
+                return <GroupsSection />;
         }
     };
 

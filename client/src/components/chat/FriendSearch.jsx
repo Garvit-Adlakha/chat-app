@@ -21,6 +21,7 @@ const FriendSearch = ({ isOpen, onClose }) => {
         }
     })
     const handleAddFriend = (id) => {
+        
         mutation.mutate(id)
         console.log('Added friend:', id);
     }
@@ -39,12 +40,21 @@ const FriendSearch = ({ isOpen, onClose }) => {
 
     if (!isOpen) return null;
 
-    if(isLoading){
+    // Loading state inside the modal to maintain consistent UI
+    if (isLoading) {
         return (
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div 
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+                onClick={(e) => {
+                    if (e.target === e.currentTarget) onClose();
+                }}
+            >
+                <div className="bg-white dark:bg-neutral-800 w-full max-w-md rounded-xl shadow-xl p-6 flex flex-col items-center justify-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                    <p className="mt-4 text-neutral-600 dark:text-neutral-300">Searching...</p>
+                </div>
             </div>
-        )
+        );
     }
 
     return (

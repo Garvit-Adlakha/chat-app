@@ -2,17 +2,37 @@ import { useState, useRef } from "react";
 import { useClickOutside } from "../../hooks/UseClickOutside.js";
 import { IconSend, IconPaperclip, IconMoodSmile } from '@tabler/icons-react';
 import EmojiPicker from 'emoji-picker-react';
+import { NEW_MESSAGE } from "../../constants/event.js";
+import useSocketStore from "../socket/Socket.jsx";
 
-export const MessageInput = ({ onSendMessage }) => {
-    const [message, setMessage] = useState('');
+export const MessageInput = ({chatId, members}) => {
+    const [message, setMessage] = useState("");
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const emojiPickerRef = useRef(null);
   
+    const { socket } = useSocketStore();
+    console.log("socket from message",socket)
     const handleSubmit = (e) => {
       e.preventDefault();
       if (!message.trim()) return;
-      onSendMessage(message);
-      setMessage('');
+      
+      const messageContent = message.trim();
+      setMessage(''); // Clear input immediately for better UX
+      
+      socket.emit(NEW_MESSAGE, {
+          chatId, 
+          members, 
+          message: messageContent
+      });
+    };
+
+    const handleFileSelect = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        console.log('File selected:', file);
+        // Here you would implement file upload logic
+        // For example: socket.emit('FILE_UPLOAD', {chatId, members, file})
+      }
     };
 
     const onEmojiClick = (emojiObject) => {
@@ -28,7 +48,7 @@ export const MessageInput = ({ onSendMessage }) => {
             <input 
               type="file" 
               className="hidden" 
-              onChange={(e) => console.log('File selected:', e.target.files[0])} 
+              onChange={handleFileSelect} 
             />
             <IconPaperclip className="w-5 h-5 text-neutral-400" />
           </label>

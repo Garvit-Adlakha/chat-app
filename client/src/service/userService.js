@@ -57,6 +57,27 @@ const userService = {
       throw new Error(error.response?.data?.message || error.message || "Failed to fetch user");
     }
   },
+  userProfile: async (userId) => {
+    try {
+      const response = await axiosInstance.get(`/user/profile/${userId}`);
+      toast.success(response.data.message, {
+        icon: '👏',
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+        },
+      });
+      return response.data.data.user;
+    }
+    catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Failed to fetch user", {
+        icon: '😞',
+      });
+      // Throw the error so React Query can catch it
+      throw new Error(error.response?.data?.message || error.message || "Failed to fetch user");
+    }
+  },
   logout: async () => {
     try {
       const response = await axiosInstance.post('/user/signout');
@@ -114,9 +135,9 @@ const userService = {
   },
   UserSearch:async(query)=>{
     try {
-      const response=await axiosInstance.get(`/user/search?name=${query}`)
-      console.log(response.data.users)
-      toast.success(response.data.message,)
+    const response=await axiosInstance.get(`/user/search?name=${query}`)
+      console.log("response from userSearch",response.data)
+      toast.success(response.data.message)
       return response.data.users
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to fetch users", { ...toastOptions, icon: '😞' });
@@ -126,11 +147,9 @@ const userService = {
   SendFriendRequest:async(receiverId)=>{
     try {
       const response=await axiosInstance.put('/user/sendrequest',{receiverId})
-      toast.success(response.data.message,)
       return response.data.data.request
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send friend request", { ...toastOptions, icon: '😞' });
-      throw error;
+      throw error;  
     }
   },  
   AcceptFriendRequest:async({requestId,accept})=>{
@@ -148,7 +167,6 @@ const userService = {
     try {
       const response=await axiosInstance.get('/user/notifications')
       toast.success(response.data.message,)
-      console.log("response from userService",response.data.data.requests)
       return response.data.data.requests
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to fetch notifications", { ...toastOptions, icon: '😞' });

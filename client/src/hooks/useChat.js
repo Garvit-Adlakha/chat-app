@@ -44,21 +44,5 @@ export const useChat = (chatId) => {
         participants: mockChats[chatId]?.participants || [],
         created: mockChats[chatId]?.created || new Date().toISOString()
     });
-
-    const sendMessage = async (content) => {
-        try {
-            const newMessage = {
-                id: messages.length + 1,
-                content,
-                sender: "user1",
-                timestamp: new Date().toISOString()
-            };
-            setMessages(prev => [...prev, newMessage]);
-            console.log(newMessage);
-        } catch (error) {
-            console.error("Error :: sendMessage", error);
-        }
-    };
-
     return { messages, loading, error, sendMessage, chatInfo };
 };

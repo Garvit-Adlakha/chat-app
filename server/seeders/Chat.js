@@ -63,7 +63,7 @@ const createGroupChats = async (numChats) => {
       }
 
       const chat = Chat.create({
-        groupChat: true,
+        isGroupChat: true,
         name: faker.lorem.words(1),
         members,
         creator: members[0],
@@ -114,12 +114,20 @@ const createMessages = async (numMessages) => {
 
 const createMessagesInAChat = async (chatId, numMessages) => {
   try {
-    const users = await User.find().select("_id");
+    // Get the chat with its members
+    const chat = await Chat.findById(chatId).select("members");
+    
+    if (!chat) {
+      console.error("Chat not found");
+      process.exit(1);
+    }
 
     const messagesPromise = [];
 
     for (let i = 0; i < numMessages; i++) {
-      const randomUser = users[Math.floor(Math.random() * users.length)];
+      // Select a random user from the chat members only
+      const randomMemberIndex = Math.floor(Math.random() * chat.members.length);
+      const randomUser = chat.members[randomMemberIndex];
 
       messagesPromise.push(
         Message.create({

@@ -1,6 +1,6 @@
 import express from 'express';
 import upload from '../utils/multer.js';
-import { getMyProfile, loginUser, registerUser, signout,searchUser,sendFriendRequest, getAllNotifications, acceptFriendRequest, getMyFriends } from '../controllers/user.controller.js';
+import {  loginUser, registerUser, signout,searchUser,sendFriendRequest, getAllNotifications, acceptFriendRequest, getMyFriends, getProfile } from '../controllers/user.controller.js';
 import { isAuthenticated } from '../middlewares/auth.middleware.js';
 import { validateSignin, validateSignup } from '../middlewares/validation.middleware.js';
 const router = express.Router();
@@ -8,8 +8,8 @@ const router = express.Router();
 router.post('/signup',upload.single('avatar'),validateSignin,registerUser)
 router.post('/signin',loginUser)
 
-router.get('/profile',isAuthenticated,getMyProfile)
-
+router.get('/profile',isAuthenticated,getProfile)
+router.get('/profile/:id',isAuthenticated,getProfile)
 router.post('/signout',isAuthenticated,signout)
 
 router.get('/search',isAuthenticated,searchUser)

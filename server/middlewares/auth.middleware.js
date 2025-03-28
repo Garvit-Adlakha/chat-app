@@ -34,16 +34,32 @@ export const isAuthenticated = catchAsync(async (req, res, next) => {
   }
 });
 
-// Role-based access control
-export const restrictTo = (...roles) => {
-  return catchAsync(async (req, res, next) => {
-    if (!req.user) {
-      throw new AppError("You are not logged in.", 401);
+export const socketAuthenticator = async (err, socket, next) => {
+  if (err) {
+    return next(new Error("Error parsing cookies"));
+  }
+  
+  try {
+    const authToken = socket.request.cookies.token;
+    
+    if (!authToken) {
+      return next(new Error("Authentication required"));
     }
-
-    if (!roles.includes(req.user.role)) {
-      throw new AppError("You do not have permission to perform this action", 403);
+    
+    const decodedData = jwt.verify(authToken, process.env.JWT_SECRET);
+    const user = await User.findById(decodedData.userId);
+    
+    if (!user) {
+      return next(new Error("User not found"));
     }
+    
+    // Attach user to socket
+    socket.user = user;
+    socket.userId = user._id;
+    
     next();
-  });
+  } catch (error) {
+    console.error("Socket authentication error:", error.message);
+    return next(new Error("Authentication error"));
+  }
 };

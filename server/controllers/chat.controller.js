@@ -40,18 +40,20 @@ export const newGroupChat = catchAsync(async (req, res, next) => {
 });
 
 export const getMyChats = catchAsync(async (req, res, next) => {
+    console.log(req.id)
     const transformedChats = await Chat.aggregate([
-        // Match chats where current user is a member
+        // Match chats where current user is a member AND isGroupChat is false
         {
             $match: {
-                members: req.user._id // Use _id instead of req.user
+                members: req.user._id,
+                isGroupChat: false
             }
         },
 
         // Lookup members from User collection
         {
             $lookup: {
-                from: "users", // Collection name is lowercase "users"
+                from: "users",
                 localField: "members",
                 foreignField: "_id",
                 as: "members"
@@ -96,54 +98,25 @@ export const getMyChats = catchAsync(async (req, res, next) => {
                     }
                 },
                 avatar: {
-                    $cond: {
-                        if: "$isGroupChat",
-                        then: {
-                            $slice: [
-                                {
-                                    $map: {
-                                        input: "$members",
-                                        as: "m",
-                                        in: {
-                                            $cond: {
-                                                if: { $ifNull: ["$$m.avatar.url", false] },
-                                                then: "$$m.avatar.url",
-                                                else: null
-                                            }
-                                        }
+                    $arrayElemAt: [
+                        {
+                            $map: {
+                                input: "$members",
+                                as: "m",
+                                in: {
+                                    $cond: {
+                                        if: { $ifNull: ["$$m.avatar.url", false] },
+                                        then: "$$m.avatar.url",
+                                        else: null
                                     }
-                                },
-                                3
-                            ]
+                                }
+                            }
                         },
-                        else: {
-                            $arrayElemAt: [
-                                {
-                                    $map: {
-                                        input: "$members",
-                                        as: "m",
-                                        in: {
-                                            $cond: {
-                                                if: { $ifNull: ["$$m.avatar.url", false] },
-                                                then: "$$m.avatar.url",
-                                                else: null
-                                            }
-                                        }
-                                    }
-                                },
-                                0
-                            ]
-                        }
-                    }
+                        0
+                    ]
                 },
                 name: {
-                    $cond: {
-                        if: "$isGroupChat",
-                        then: "$name",
-                        else: {
-                            $arrayElemAt: ["$members.name", 0]
-                        }
-                    }
+                    $arrayElemAt: ["$members.name", 0]
                 }
             }
         },
@@ -168,25 +141,24 @@ export const getMyChats = catchAsync(async (req, res, next) => {
 });
 
 export const getMyGroups = catchAsync(async (req, res, next) => {
-    const groups = await Chat.find({ members: req.id, isGroupChat: true }).populate('members', 'name avatar');
-
-    const filteredGroups = groups.map(({ members, _id, groupChat, name }) => ({
-        members: members.filter(member => member._id.toString() !== req.id),
-        _id,
-        groupChat,
-        name,
-        avatar: members.slice(0, 3).map(({ avatar }) => avatar?.url)
-    })
-    )
-    res.status(200).json({
-        status: "success",
-        data: {
-            groups: filteredGroups
-        }
-    })
-}
-)
-
+    const chats = await Chat.find({
+      members: req.user,
+      groupChat: true,
+      creator: req.id,
+    }).populate("members", "name avatar");
+  
+    const groups = chats.map(({ members, _id, groupChat, name }) => ({
+      _id,
+      groupChat,
+      name,
+      avatar: members.slice(0, 3).map(({ avatar }) => avatar.url),
+    }));
+  
+    return res.status(200).json({
+      success: true,
+      groups,
+    });
+  });
 export const addMembers = catchAsync(async (req, res, next) => {
     const { chatId, members } = req.body;
 
@@ -633,7 +605,7 @@ export const getMessages = catchAsync(async (req, res, next) => {
     const limit=20
     const skip=(page-1)*limit
 
-    const [messages,totalMessageCount] = await  Promise.all([
+    const [messages, totalMessageCount] = await Promise.all([
         Message.find({ chat: chatId })
         .sort({ createdAt: -1 })
         .skip(skip)

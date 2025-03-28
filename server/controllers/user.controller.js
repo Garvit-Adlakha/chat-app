@@ -62,16 +62,27 @@ export const loginUser = catchAsync(async (req, res, next) => {
     generateToken(res, user, "Welcome Back", 200);
 })
 
-export const getMyProfile = catchAsync(async (req, res, next) => {
-    const user = await User.findById(req.id);
+export const getProfile = catchAsync(async (req, res, next) => {
+    let user;
+
+    if (!req.params.id || req.params.id === req.id) {
+        // If no ID is provided or the ID matches the current user, return their profile
+        user = await User.findById(req.id);
+    } else {
+        // Fetch another user's profile
+        user = await User.findById(req.params.id);
+
+        if (!user) {
+            throw new AppError("User not found", 404);
+        }
+    }
+
     res.status(200).json({
         status: "success",
-        data: {
-            user
-        }
-    })
-}
-)
+        data: { user }
+    });
+});
+
 
 export const signout = catchAsync(async (req, res, next) => {
     res
@@ -116,6 +127,7 @@ export const searchUser = catchAsync(async (req, res) => {
       users,
     });
   });
+  
 export const sendFriendRequest = catchAsync(async (req, res, next) => {
     const { receiverId } = req.body;
     if(receiverId.toString()===req.id.toString()){

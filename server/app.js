@@ -10,9 +10,7 @@ import dotenv from 'dotenv';
 import connectDB from './database/db.js';
 import { Server } from 'socket.io';
 import {v4 as uuid} from 'uuid';
-
-
-
+import { socketAuthenticator } from './middlewares/auth.middleware.js';
 
 dotenv.config();
 await connectDB();
@@ -28,7 +26,6 @@ const io = new Server(server, {
     },
     transports: ['websocket', 'polling'],
     secure: process.env.NODE_ENV === 'production',
-    path: '/socket.io'
 });
 
 //rateLimier
@@ -76,7 +73,16 @@ import chatRoutes from './routes/chat.route.js';
 app.use('/api/v1/user', userRoutes)
 app.use('/api/v1/chat', chatRoutes)
 
-export const userSocketIds=new Map()
+
+
+export const userSocketIds = new Map();
+
+// Fix the Socket.IO middleware setup
+io.use((socket, next) => {
+  cookieParser()(socket.request, socket.request.res || {}, 
+    (err) => socketAuthenticator(err, socket, next)
+  );
+});
 
 //sockets routes
 io.engine.on("connection_error", (err) => {
@@ -85,11 +91,8 @@ io.engine.on("connection_error", (err) => {
 
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
-
-    let user={
-        _id:"123",
-        name:"test"
-    }
+    const user = socket.user;
+    console.log('User:', user);
     userSocketIds.set(user._id.toString(),socket.id)
     socket.on(NEW_MESSAGE,async({chatId,members,message})=>{
         const messageForRealTime={
@@ -148,6 +151,7 @@ import { errorHandler } from './middlewares/error.middleware.js';
 import { NEW_MESSAGE, NEW_MESSAGE_ALERT } from './constants.js';
 import { getSockets } from './utils/sockets.js';
 import { Message } from './models/message.model.js';
+import { createGroupChats, createSingleChats } from './seeders/Chat.js';
 
 app.use(errorHandler)
 //server

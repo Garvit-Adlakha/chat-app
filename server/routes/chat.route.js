@@ -1,12 +1,12 @@
 import {Router} from 'express';
 import { addMembers, deleteChat, getChatDetails, getMessages, getMyChats, getMyGroups, leaveGroup, newGroupChat, removeMembers, renameGroup, sendAttachments } from '../controllers/chat.controller.js';
 import { isAuthenticated } from '../middlewares/auth.middleware.js';
-import { attachmentsMulter } from '../utils/multer.js';
+import upload, { attachmentsMulter } from '../utils/multer.js';
 import { get } from 'mongoose';
 
 const router=Router();
 
-router.post('/new',isAuthenticated,newGroupChat)
+router.post('/new',isAuthenticated, upload.single('groupIcon'),newGroupChat)
 router.get('/getChat',isAuthenticated,getMyChats)
 router.get('/getGroup',isAuthenticated,getMyGroups)
 

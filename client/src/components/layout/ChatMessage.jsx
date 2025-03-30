@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import chatService from '../../service/chatService';
 import PropTypes from 'prop-types';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import useSocketStore from '../socket/Socket';
 import { NEW_MESSAGE } from '../../constants/event';
 
@@ -51,6 +51,11 @@ const Message = ({ message, isSender }) => (
 export const ChatMessage = ({chatId}) => {
     const messagesEndRef = useRef(null);
     const observerTarget = useRef(null);
+    const containerRef = useRef(null);
+    const [firstLoad, setFirstLoad] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [prevScrollHeight, setPrevScrollHeight] = useState(0);
+    const [pageCount, setPageCount] = useState(0);
     const queryClient = useQueryClient();
     const{data:currentUser}=useQuery({
         queryKey:["user"],
@@ -73,31 +78,71 @@ export const ChatMessage = ({chatId}) => {
             page: pageParam
         }),
         getNextPageParam: (lastPage) => {
-            if (lastPage.currentPage < lastPage.totalPages) {
-                return lastPage.currentPage + 1;
+            if (Number(lastPage.currentPage) < Number(lastPage.total)) {
+                return Number(lastPage.currentPage) + 1;
             }
             return undefined;
         },
-        select: (data) => ({
-            pages: data.pages.map(page => ({
-                ...page,
-                messages: page.messages.sort((a, b) => 
-                    new Date(a.createdAt) - new Date(b.createdAt)
-                )
-            })),
-            pageParams: data.pageParams
-        }),
         initialPageParam: 1
     });
-    // Intersection Observer for infinite scroll
+ 
+    // Debounced fetch to prevent multiple rapid fetches
+    const debouncedFetch = useCallback(() => {
+        if (hasNextPage && !isFetchingNextPage && !isFetchingMore) {
+            // Record the current scroll height before loading more
+            if (containerRef.current) {
+                setPrevScrollHeight(containerRef.current.scrollHeight);
+                console.log("Recording height before fetch:", containerRef.current.scrollHeight);
+            }
+            
+            setIsFetchingMore(true);
+            fetchNextPage()
+                .then(() => {
+                    // After fetching, check if the scroll height has changed
+                    if (containerRef.current) {
+                        const newScrollHeight = containerRef.current.scrollHeight;
+                        console.log("New height after fetch:", newScrollHeight);
+                        // Adjust scroll position if the height has changed
+                        if (newScrollHeight !== prevScrollHeight) {
+                            const scrollDiff = newScrollHeight - prevScrollHeight;
+                            containerRef.current.scrollTop += scrollDiff;
+                            console.log("Adjusted scroll position by:", scrollDiff);
+                        }
+                    }
+                    console.log("Successfully fetched next page");
+                })
+                .catch(err => {
+                    console.error("Error fetching next page:", err);
+                })
+                .finally(() => {
+                    setTimeout(() => setIsFetchingMore(false), 1000);
+                });
+        }
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage, isFetchingMore]);
+
+    // Track when new pages are loaded
+    useEffect(() => {
+        if (data?.pages) {
+            const newPageCount = data.pages.length;
+            console.log("Page count:", newPageCount, "Previous:", pageCount);
+            if (newPageCount > pageCount) {
+                setPageCount(newPageCount);
+            }
+        }
+    }, [data?.pages, pageCount]);
+
+    // Adjust scroll after loading more messages
+
+    // Use Intersection Observer for loading older messages
     useEffect(() => {
         const observer = new IntersectionObserver(
             entries => {
-                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-                    fetchNextPage();
+                if (entries[0].isIntersecting) {
+                    console.log("Observer triggered, fetching more messages");
+                    debouncedFetch();
                 }
             },
-            { threshold: 0.5 }
+            { threshold: 0.1, rootMargin: "100px 0px 0px 0px" }
         );
 
         if (observerTarget.current) {
@@ -105,20 +150,33 @@ export const ChatMessage = ({chatId}) => {
         }
 
         return () => observer.disconnect();
-    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+    }, [debouncedFetch]);
 
-    // Scroll to bottom on new messages
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll to bottom function
+    const scrollToBottom = (behavior = "smooth") => {
+        messagesEndRef.current?.scrollIntoView({ behavior });
     };
 
+    // Initial scroll to bottom
     useEffect(() => {
-        scrollToBottom();
-    }, [data]);
+        if (data && firstLoad && !isLoading) {
+            scrollToBottom("auto");
+            setFirstLoad(false);
+        }
+    }, [data, isLoading, firstLoad]);
 
-    // Flatten all messages from all pages
-    const chatMessages = data?.pages.flatMap(page => page.messages) ?? [];
+    // Process messages in reverse order
+    const processedMessages = useMemo(() => {
+        if (!data?.pages) return [];
+        
+        const allMessages = data.pages.flatMap(page => page.messages);
+        
+        return [...allMessages].sort((a, b) => 
+            new Date(a.createdAt) - new Date(b.createdAt)
+        );
+    }, [data?.pages]);
 
+    // Handle new messages via socket
     useEffect(() => {
         if (socket) {
             socket.on(NEW_MESSAGE, ({chatId: receivedChatId, message}) => {
@@ -127,12 +185,10 @@ export const ChatMessage = ({chatId}) => {
                         if (!oldData) return oldData;
                         
                         const newPages = [...oldData.pages];
-                        const lastPageIndex = newPages.length - 1;
-                        newPages[lastPageIndex] = {
-                            ...newPages[lastPageIndex],
-                            messages: [...newPages[lastPageIndex].messages, message].sort(
-                                (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-                            )
+                        const firstPageIndex = 0;
+                        newPages[firstPageIndex] = {
+                            ...newPages[firstPageIndex],
+                            messages: [message, ...newPages[firstPageIndex].messages]
                         };
                         
                         return {
@@ -161,17 +217,28 @@ export const ChatMessage = ({chatId}) => {
     }
 
     return (
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-transparent">
-            {/* Load More Messages Trigger */}
-            <div ref={observerTarget} className="h-4">
-                {isFetchingNextPage && (
-                    <div className="text-center text-sm text-neutral-400">
-                        Loading more messages...
+        <div 
+            ref={containerRef}
+            className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-transparent"
+        >
+            {/* Load More Messages Trigger at the top with increased visibility */}
+            <div 
+                ref={observerTarget} 
+                className="h-10 flex items-center justify-center"
+            >
+                {isFetchingNextPage ? (
+                    <div className="text-center text-sm text-neutral-400 py-2">
+                        Loading older messages...
                     </div>
-                )}
+                ) : hasNextPage ? (
+                    <div className="text-center text-xs text-neutral-500">
+                        Scroll up for more messages
+                    </div>
+                ) : null}
             </div>
 
-            {chatMessages.map((message, index) => {
+            {/* Display messages with correct order - oldest at top, newest at bottom */}
+            {processedMessages.map((message) => {
                 const isSender = message.sender._id === currentUserId;
                 
                 return (
@@ -208,18 +275,7 @@ Message.propTypes = {
 };
 
 ChatMessage.propTypes = {
-    messages: PropTypes.arrayOf(
-        PropTypes.shape({
-            id: PropTypes.number.isRequired,
-            sender: PropTypes.shape({
-                id: PropTypes.string.isRequired,
-                name: PropTypes.string.isRequired
-            }).isRequired,
-            content: PropTypes.string.isRequired,
-            timestamp: PropTypes.string.isRequired
-        })
-    ),
-    currentUserId: PropTypes.string
+    chatId: PropTypes.string.isRequired
 };
 
 export default ChatMessage;

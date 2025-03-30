@@ -8,6 +8,16 @@ const chatSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    groupIcon: {
+        publicId: {
+            type: String,
+            default: "chat-app-default/default-group-icon"
+        },
+        url: {
+            type: String,
+            default: "https://icon-library.com/images/group-chat-icon/group-chat-icon-17.jpg"
+        }
+    },
     creator: {
         type:Schema.Types.ObjectId,
         ref: 'User'

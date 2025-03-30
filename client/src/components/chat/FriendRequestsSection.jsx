@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {IconUsersPlus, IconHandLoveYou} from '@tabler/icons-react';
 import FriendSearch from "./FriendSearch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import userService from "../../service/userService";
+import toast from "react-hot-toast";
 
 const FriendRequestsSection = () => {
     const [isOpen,setIsOpen] = useState(false);
@@ -14,26 +15,28 @@ const FriendRequestsSection = () => {
     const queryClient = useQueryClient();
     const acceptMutation=useMutation({
         mutationFn: userService.AcceptFriendRequest,
-        onSuccess:()=>{
-            queryClient.invalidateQueries("requests")
+        onSuccess:(_, variables)=>{
+            if(variables.accept === true) {
+                toast.success("Friend request accepted");
+            } else {
+                toast.success("Friend request rejected");
+            }
+            queryClient.invalidateQueries(["requests"]);
         },
         onError:(error)=>{
-            console.log(error)
+            console.log(error);
+            toast.error("Failed to process friend request");
         }
-    })
-    console.log(requests)
+    });
+    
     const handleAccept = (id) => {
-        // TODO: Implement accept logic
-        acceptMutation.mutate({requestId:id,accept:true})
-
-        console.log('Accepted request:', id);
+        acceptMutation.mutate({requestId:id, accept:true});
     };
 
     const handleReject = (id) => {
-        // TODO: Implement reject logic
-        acceptMutation.mutate({requestId:id,accept:false})
-        console.log('Rejected request:', id);
+        acceptMutation.mutate({requestId:id, accept:false});
     };
+
     if(isLoading){
         return (
         <div className="flex items-center justify-center h-full">

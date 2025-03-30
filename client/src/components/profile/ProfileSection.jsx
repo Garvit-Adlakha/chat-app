@@ -10,12 +10,8 @@ import VisuallyHiddenInput from '../shared/VisuallyHiddenInput';
 import { useQuery } from "@tanstack/react-query";
 import userService from "../../service/userService";
 import PropTypes from 'prop-types';
+import chatService from "../../service/chatService";
 
-const mockGroups = [
-    { id: "group1", name: "Team Alpha", icon: "🚀" },
-    { id: "group2", name: "Project Beta", icon: "🔬" },
-    { id: "group3", name: "Gaming Squad", icon: "🎮" }
-];
 
 const ProfileSection = ({ userId = null }) => {
     // Current user query
@@ -36,6 +32,12 @@ const ProfileSection = ({ userId = null }) => {
         queryKey: ["friends"],
         queryFn: userService.UserFriends,
     });
+
+    const{data:groups}=useQuery({
+        queryKey:["groups"],
+        queryFn:chatService.UserGroupChats
+    })
+    console.log("groups response from profile section",groups)
 
     const [isEditing, setIsEditing] = useState(false);
     const [editedUser, setEditedUser] = useState({
@@ -169,7 +171,7 @@ const ProfileSection = ({ userId = null }) => {
                                 <span className="text-sm font-medium">Groups</span>
                             </div>
                             <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-                                {mockGroups.length}
+                                {groups?.length}
                             </span>
                         </div>
                     </div>

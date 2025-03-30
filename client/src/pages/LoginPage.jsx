@@ -4,6 +4,7 @@ import { IconMessage, IconRobot, IconHeartHandshake, IconShieldLock, IconBrandGo
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import userService from "../service/userService";
+import toast from "react-hot-toast";
 const LoginPage = () => {
   const navigate = useNavigate();
   const [rememberMe, setRememberMe] = useState(false);
@@ -20,10 +21,10 @@ const loginMutation = useMutation({
   },
   onSuccess: (data) => {
     // Save token to localStorage or sessionStorage based on rememberMe
-    console.log("Login successful", data);
     
     queryClient.setQueryData(['user'], data.user);
      queryClient.invalidateQueries(['user']).then(()=>{
+      toast.success("Logged in successfully")
        setIsLoading(false);
        navigate("/chat");    
      })

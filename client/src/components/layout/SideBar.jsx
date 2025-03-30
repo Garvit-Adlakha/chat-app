@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sidebar, SidebarBody, useSidebar } from "../ui/sidebar";
 import { 
     IconUsers, 
@@ -20,11 +20,20 @@ export const SideBar = () => {
     const [activeSection, setActiveSection] = useState('direct');
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
     const { isOpen } = useSidebar();  // Changed from open to isOpen for clarity
-    const{data:request}=useQuery({
+    const{data:request , isFetching}=useQuery({
         queryKey:["requests"],
         queryFn: userService.getAllNotifications
     })
-    const [requestCount, setRequestCount] = useState(request?.length || 0);
+    console.log("request", request)
+    const [requestCount, setRequestCount] = useState(0);
+    
+    // Update requestCount whenever request data changes
+    useEffect(() => {
+        if (request && request.length > 0) {
+            setRequestCount(request.length);
+        }
+    }, [request]);
+    
     const navigationItems= [
         {
             id: 'direct',

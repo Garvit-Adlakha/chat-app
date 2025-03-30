@@ -9,34 +9,86 @@ import { Message } from "../models/message.model.js";
 import { NEW_MESSAGE_ALERT, NEW_ATTACHMENT_ALERT } from "../constants.js";
 
 export const newGroupChat = catchAsync(async (req, res, next) => {
-    const { name, members } = req.body;
+    try {
+        console.log("Request body:", req.body);
+        console.log("Request file:", req.file);
+        
+        const { name, members, icon } = req.body;
+        const file = req.file;
+        
+        // Initialize groupIcon with default values
+        let groupIcon = {
+            publicId: "chat-app-default/default-group-icon",
+            url: "https://icon-library.com/images/group-chat-icon/group-chat-icon-17.jpg"
+        };
+        
+        // Validate inputs
+        if (!name?.trim()) {
+            throw new AppError("Group name is required", 400);
+        }
 
-    if (!name?.trim()) {
-        throw new AppError("Group name is required", 400);
-    }
+        // Check if members exists in some form
+        if (!members) {
+            throw new AppError("Please add at least 1 member to create a group", 400);
+        }
+        
+        // Convert members to array if it's not already
+        const membersList = Array.isArray(members) ? members : [members];
+        
+        if (membersList.length < 1) {
+            throw new AppError("Please add at least 1 member to create a group", 400);
+        }
+        
+        // Validate member IDs
+        if (!membersList.every(id => mongoose.Types.ObjectId.isValid(id))) {
+            throw new AppError("Invalid member ID(s)", 400);
+        }
 
-    if (!Array.isArray(members) || members.length < 2) {
-        throw new AppError("Please add at least 2 members to create a group", 400);
-    }
+        // Process file if provided
+        if (file) {
+            try {
+                const { public_id, secure_url } = await uploadMedia(file.path);
+                groupIcon = {
+                    publicId: public_id,
+                    url: secure_url
+                };
+            } catch (error) {
+                console.error("File upload error:", error);
+                throw new AppError("Failed to upload group icon: " + error.message, 400);
+            }
+        } else if (icon) {
+            // If emoji provided, use it
+            groupIcon = {
+                publicId: "chat-app-default/emoji-icon",
+                url: icon,
+                isEmoji: true
+            };
+        }
 
-    const allMembers = [...new Set([...members, req.id])]; // Remove duplicates
+        const allMembers = [...new Set([...membersList, req.id])]; // Remove duplicates
 
-    const chat = await Chat.create({
-        name: name.trim(),
-        isGroupChat: true,
-        creator: req.id,
-        members: allMembers
-    });
-
-    emitEvent(req, ALERT, allMembers, `Welcome to ${name} group`);
-    emitEvent(req, REFETCH_CHATS, members);
-
-    return res
-        .status(201)
-        .json({
-            message: "Group created successfully",
-            chat
+        const chat = await Chat.create({
+            name: name.trim(),
+            isGroupChat: true,
+            creator: req.id,
+            members: allMembers,
+            groupIcon
         });
+
+        emitEvent(req, ALERT, allMembers, `Welcome to ${name} group`);
+        emitEvent(req, REFETCH_CHATS, allMembers);
+
+        return res
+            .status(201)
+            .json({
+                success: true,
+                message: "Group created successfully",
+                chat
+            });
+    } catch (error) {
+        console.error("Group creation server error:", error);
+        return next(error);
+    }
 });
 
 export const getMyChats = catchAsync(async (req, res, next) => {
@@ -139,26 +191,63 @@ export const getMyChats = catchAsync(async (req, res, next) => {
         chats: transformedChats
     });
 });
-
 export const getMyGroups = catchAsync(async (req, res, next) => {
-    const chats = await Chat.find({
-      members: req.user,
-      groupChat: true,
-      creator: req.id,
-    }).populate("members", "name avatar");
-  
-    const groups = chats.map(({ members, _id, groupChat, name }) => ({
-      _id,
-      groupChat,
-      name,
-      avatar: members.slice(0, 3).map(({ avatar }) => avatar.url),
-    }));
-  
+    const chats = await Chat.aggregate([
+        // Match chats where current user is a member AND isGroupChat is true
+        {
+            $match: {
+                members: req.user._id,
+                isGroupChat: true
+            }
+        },
+        
+        // Lookup members from User collection
+        {
+            $lookup: {
+                from: "users",
+                localField: "members",
+                foreignField: "_id",
+                as: "members"
+            }
+        },
+        
+        // Project only needed fields
+        {
+            $project: {
+                _id: 1,
+                name: 1,
+                isGroupChat: 1,
+                creator: 1,
+                groupIcon: 1,
+                members: {
+                    $map: {
+                        input: { $slice: ["$members", 3] },
+                        as: "member",
+                        in: {
+                            _id: "$$member._id",
+                            name: "$$member.name",
+                            avatar: "$$member.avatar.url"
+                        }
+                    }
+                },
+                memberCount: { $size: "$members" }
+            }
+        },
+        
+        // Sort by latest updated
+        {
+            $sort: {
+                updatedAt: -1
+            }
+        }
+    ]);
+
     return res.status(200).json({
-      success: true,
-      groups,
+        success: true,
+        results: chats.length,
+        groups: chats
     });
-  });
+});
 export const addMembers = catchAsync(async (req, res, next) => {
     const { chatId, members } = req.body;
 
@@ -573,30 +662,48 @@ export const deleteChat = catchAsync(async (req, res, next) => {
     if (chat.isGroupChat && !chat.creator.equals(req.id)) {
         throw new AppError("You are not authorized to delete this group", 403)
     }
-    if (chat.isGroupChat && !chat.members.includes(req.id)) {
-        throw new AppError("You are not a member of this group", 400)
-    }
 
-    const messagesWithAttachments = await Message.find({
-        chat: chatId,
-        attachments: { $exists: true, $ne: [] }
-    })
+    try {
+        // Get messages with attachments for this chat
+        const messagesWithAttachments = await Message.find({
+            chat: chatId,
+            attachments: { $exists: true, $ne: [] }
+        });
 
-    const public_ids = messagesWithAttachments.map(message => message.attachments.map(a => a.publicId)).flat()
-    if (public_ids.length > 0) {
+        // Extract public IDs for deletion from Cloudinary
+        const public_ids = messagesWithAttachments.map(message => 
+            message.attachments.map(a => a.publicId)
+        ).flat();
 
-        await Promise.all(
-            [public_ids.map(public_id => deleteMediaFromCloudinary(public_id)),
+        // Delete operations to perform
+        const deleteOperations = [
+            // Always delete the chat and all messages
             chat.deleteOne(),
             Message.deleteMany({ chat: chatId })
-            ])
-        emitEvent(req, ALERT, members, `Chat deleted`)
-        emitEvent(req, REFETCH_CHATS, members)
+        ];
+
+        // Add Cloudinary deletion if attachments exist
+        if (public_ids.length > 0) {
+            deleteOperations.push(
+                ...public_ids.map(public_id => deleteMediaFromCloudinary(public_id))
+            );
+        }
+
+        // Execute all delete operations in parallel
+        await Promise.all(deleteOperations);
+
+        // Notify users
+        emitEvent(req, ALERT, members, `Chat deleted`);
+        emitEvent(req, REFETCH_CHATS, members);
+
+        return res.status(200).json({
+            success: true,
+            message: "Chat deleted successfully"
+        });
+    } catch (error) {
+        console.error("Error deleting chat:", error);
+        throw new AppError("Failed to delete chat: " + error.message, 500);
     }
-    return res.status(200).json({
-        success: true,
-        message: "Chat deleted successfully"
-    })
 })
 
 export const getMessages = catchAsync(async (req, res, next) => {
@@ -607,7 +714,7 @@ export const getMessages = catchAsync(async (req, res, next) => {
 
     const [messages, totalMessageCount] = await Promise.all([
         Message.find({ chat: chatId })
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: -1})
         .skip(skip)
         .limit(limit)
         .populate('sender', 'name')

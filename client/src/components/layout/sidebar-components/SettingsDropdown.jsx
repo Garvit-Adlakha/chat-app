@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import userService from '../../../service/userService';
 import { useNavigate } from 'react-router-dom';
 import useUiStore from '../../../store/UiStore';
+import toast from 'react-hot-toast';
 
 export const SettingsDropdown = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -13,7 +14,7 @@ export const SettingsDropdown = () => {
     const logoutMutation = useMutation({
         mutationFn: userService.logout,
         onSuccess: () => {
-            console.log("logout success");
+            toast.success("Logged out successfully")
             queryClient.setQueryData(['user'], null);
         },
         onError: (error) => {

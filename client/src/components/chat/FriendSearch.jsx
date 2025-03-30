@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { IconX, IconSearch, IconUserPlus } from "@tabler/icons-react";
 import { useQuery,useMutation, useQueryClient } from "@tanstack/react-query";
 import userService from "../../service/userService";
+import toast from "react-hot-toast";
 const FriendSearch = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -14,10 +15,11 @@ const FriendSearch = ({ isOpen, onClose }) => {
     const mutation=useMutation({
         mutationFn: userService.SendFriendRequest,
         onSuccess:()=>{
-            queryClient.invalidateQueries("users")
+            toast.success("Friend request sent successfully")
+            queryClient.invalidateQueries({ queryKey: ["users", searchQuery] })
         },
         onError:(error)=>{
-            console.log(error)
+            toast.error(error?.response?.data?.message || "Failed to send friend request")
         }
     })
     const handleAddFriend = (id) => {

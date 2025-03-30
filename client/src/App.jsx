@@ -5,17 +5,18 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import AppRouter from "./routes"
-
+import { Toaster } from 'react-hot-toast';
 
 const queryClient = new QueryClient()
 
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <AppRouter />
-    </BrowserRouter>
-    <ReactQueryDevtools initialIsOpen={false} />
+      <BrowserRouter>
+        <AppRouter />
+      </BrowserRouter>
+      <ReactQueryDevtools initialIsOpen={false} />
+      <Toaster position="top-right" />
     </QueryClientProvider>
   )
 }

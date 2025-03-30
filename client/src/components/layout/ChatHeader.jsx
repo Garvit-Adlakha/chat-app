@@ -65,7 +65,7 @@ export const ChatHeader = ({ chatId }) => {
                                 <div className="tooltip" data-tip={chatDetails.members.slice(0, 3).map(m => m.name).join(', ')}>
                                     <div className="w-12 rounded-full">
                                         <img 
-                                            src={chatDetails.groupAvatar?.url}
+                                            src={chatDetails.groupIcon?.url}
                                             alt={chatDetails.name}
                                             className="object-cover"
                                         />
@@ -83,7 +83,7 @@ export const ChatHeader = ({ chatId }) => {
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold text-white">
-                                {chatDetails.name}
+                                {chatDetails.isGroupChat ? chatDetails.name : otherMember?.name}
                             </h3>
                             <p className="text-xs text-neutral-400">
                                 {chatDetails.isGroupChat && `${chatDetails.members?.length} members`}

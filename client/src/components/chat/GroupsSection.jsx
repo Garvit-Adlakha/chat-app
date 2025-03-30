@@ -75,7 +75,7 @@ const GroupsSection = () => {
 
                                     {/* update avatar logic */}
                                     <img 
-                                        src={group.avatar[0]} 
+                                        src={group.groupIcon?.url} 
                                         alt={group.name} 
                                         className="w-full h-full object-cover"
                                     />

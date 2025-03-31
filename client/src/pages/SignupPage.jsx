@@ -35,7 +35,6 @@ const SignupPage = () => {
 
   // Add Google Sign-In SDK
   useEffect(() => {
-    console.log("Using Google Client ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
     
     // Load the Google Sign-In SDK
     const loadGoogleScript = () => {
@@ -141,10 +140,7 @@ const SignupPage = () => {
             setError(
               'This website is not registered with Google. Please try email registration instead.'
             );
-            console.warn(
-              'Google OAuth Origin Error: Your origin is not registered',
-              window.location.origin
-            );
+         
           } else if (reason === 'browser_not_supported') {
             setError('Your browser does not support Google Sign-In. Please try email registration instead.');
           } else if (reason === 'invalid_client') {
@@ -219,10 +215,6 @@ const SignupPage = () => {
 
   // Add debugging for FormData content
   const logFormData = (formData) => {
-    console.log("Form data entries:");
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}: ${value instanceof File ? `File: ${value.name}, size: ${value.size}, type: ${value.type}` : value}`);
-    }
   };
 
   const handleSubmit = async (e) => {

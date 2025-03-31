@@ -80,6 +80,10 @@ app.use(cors(corsOptions));
 import userRoutes from './routes/user.route.js';
 import chatRoutes from './routes/chat.route.js';
 import { TYPING, USER_STATUS_CHANGE } from './constants.js';
+import { getSockets } from './utils/sockets.js';
+import { Message } from './models/message.model.js';
+import { User } from './models/user.model.js';
+import { Chat } from './models/chat.model.js';
 app.use('/api/v1/user', userRoutes)
 app.use('/api/v1/chat', chatRoutes)
 
@@ -226,11 +230,7 @@ app.use((req, res) => {
 // Global Error handler
 import { errorHandler } from './middlewares/error.middleware.js';
 import { NEW_MESSAGE, NEW_MESSAGE_ALERT, STOP_TYPING } from './constants.js';
-import { getSockets } from './utils/sockets.js';
-import { Message } from './models/message.model.js';
-import { createGroupChats, createSingleChats } from './seeders/Chat.js';
-import { User } from './models/user.model.js';
-import { Chat } from './models/chat.model.js';
+
 
 app.use(errorHandler)
 //server

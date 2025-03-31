@@ -16,9 +16,21 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+    isEmailVerified: {
+        type: Boolean,
+        default: false
+    },
     password: {
         type: String,
-        required: true,
+        required: function() {
+            // Password is required only if googleId is not provided
+            return !this.googleId;
+        },
         select: false
     },
     avatar: {
@@ -44,6 +56,7 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.pre("save", async function (next) {
+    // Skip password hashing for Google users if password hasn't been modified
     if (!this.isModified("password")) {
         return next();
     }

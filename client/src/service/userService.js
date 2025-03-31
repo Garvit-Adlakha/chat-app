@@ -83,6 +83,14 @@ const userService = {
       throw error;
     }
   },
+  googleAuth: async (idToken) => {
+    try {
+      const response = await axiosInstance.post('/user/google-auth', { token: idToken });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || error.message || "Google authentication failed");
+    }
+  },
 }
 
 export default userService;

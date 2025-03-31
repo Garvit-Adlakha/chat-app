@@ -1,7 +1,7 @@
 import { AppError, catchAsync } from "../middlewares/error.middleware.js";
 import { Chat } from '../models/chat.model.js'
 import emitEvent from "../utils/Emit.js";
-import { ALERT, REFETCH_CHATS } from "../constants.js";
+import { ALERT,NEW_MESSAGE, REFETCH_CHATS } from "../constants.js";
 import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
 import { uploadMedia, deleteMediaFromCloudinary, deleteVideoFromCloudinary } from "../utils/cloudinary.js";
@@ -576,7 +576,7 @@ export const sendAttachments = catchAsync(async (req, res, next) => {
         },
         chat: chatId,
     }
-    emitEvent(req, NEW_ATTACHMENT_ALERT, chat.members, {
+    emitEvent(req, NEW_MESSAGE, chat.members, {
         message: messageForEmit,
         chatId
     })

@@ -3,7 +3,8 @@ import { Sidebar, SidebarBody, useSidebar } from "../ui/sidebar";
 import { 
     IconUsers, 
     IconMessage, 
-    IconHeartQuestion
+    IconHeartQuestion,
+    IconUsersGroup
 } from "@tabler/icons-react";
 import GroupsSection from '../chat/GroupsSection';
 import ProfileSection from '../profile/ProfileSection';
@@ -24,7 +25,6 @@ export const SideBar = () => {
         queryKey:["requests"],
         queryFn: userService.getAllNotifications
     })
-    console.log("request", request)
     const [requestCount, setRequestCount] = useState(0);
     
     // Update requestCount whenever request data changes
@@ -44,7 +44,7 @@ export const SideBar = () => {
         },
         {
             id: 'groups',
-            icon: IconUsers,
+            icon: IconUsersGroup,
             label: 'Groups',
             isActive: activeSection === 'groups',
             onClick: () => setActiveSection('groups')

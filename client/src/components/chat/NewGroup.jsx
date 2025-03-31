@@ -36,7 +36,6 @@ const NewGroup = ({ isOpen, onClose }) => {
             onClose();
         },
         onError: (error) => {
-            console.error("Failed to create group:", error);
             toast.error(error.message || "Failed to create group");
         }
     });

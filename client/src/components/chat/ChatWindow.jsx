@@ -3,12 +3,26 @@ import { ChatMessage } from "../layout/ChatMessage";
 import { MessageInput } from "../layout/MessageInput";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import chatService from "../../service/chatService";
 
 const ChatWindow = ({ chatId }) => {
-    console.log("chat id from chatWindow",chatId)
     useEffect(() => {
   
     }, [chatId]);
+
+    const { data: chatData, isLoading, error } = useQuery({
+        queryKey: ["chatData", chatId],
+        queryFn: () => chatService.getChatDetails(chatId),
+        enabled: !!chatId,
+    });
+
+    if(isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <LoadingSpinner size="lg" />
+            </div>
+        );
+    }
     return (
         <section className="
             chat-window h-[90vh] rounded-2xl 
@@ -22,7 +36,7 @@ const ChatWindow = ({ chatId }) => {
             </div>
             
             <MessageInput chatId={chatId}
-                members={chatId.members}
+                members={chatData.members}
             />
         </section>
     );

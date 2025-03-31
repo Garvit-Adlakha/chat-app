@@ -37,7 +37,6 @@ const ProfileSection = ({ userId = null }) => {
         queryKey:["groups"],
         queryFn:chatService.UserGroupChats
     })
-    console.log("groups response from profile section",groups)
 
     const [isEditing, setIsEditing] = useState(false);
     const [editedUser, setEditedUser] = useState({
@@ -55,7 +54,7 @@ const ProfileSection = ({ userId = null }) => {
         if (profileUser) {
             setEditedUser({
                 name: profileUser.name || "",
-                avatar: profileUser.avatar?.url || "",
+                avatar: profileUser.avatar?.url || IconUserCircle,
                 bio: profileUser.bio || "Hello, I'm using Chat App!",
             });
             setPreviewAvatar(profileUser.avatar?.url || "");

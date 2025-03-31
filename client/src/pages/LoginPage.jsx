@@ -1,40 +1,199 @@
 import { Form, Link, useFormAction, useNavigate } from "react-router-dom"
 import { HoverBorderGradient } from "../components/ui/hover-border-gradient";
 import { IconMessage, IconRobot, IconHeartHandshake, IconShieldLock, IconBrandGoogle, IconBrandGithub } from '@tabler/icons-react';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import userService from "../service/userService";
 import toast from "react-hot-toast";
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const queryClient=useQueryClient()
+  const queryClient = useQueryClient()
   const formAction = useFormAction()
   const [error, setError] = useState("")
 
-const loginMutation = useMutation({
-  mutationFn: async (formData) => {
-    return userService.login(formData)
-  },
-  onSuccess: (data) => {
-    // Save token to localStorage or sessionStorage based on rememberMe
+  // Add Google Sign-In SDK with better error handling
+  useEffect(() => {
+    console.log("Using Google Client ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
+    console.log("Current origin:", window.location.origin);
     
-    queryClient.setQueryData(['user'], data.user);
-     queryClient.invalidateQueries(['user']).then(()=>{
-      toast.success("Logged in successfully")
-       setIsLoading(false);
-       navigate("/chat");    
-     })
-    // Redirect user
-  },
-  onError: (error) => {
-    setError(error.message || "Login failed");
-    setIsLoading(false);
-  },
-})
+    // Load the Google Sign-In SDK
+    const loadGoogleScript = () => {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => {
+        console.error('Failed to load Google Sign-In SDK');
+        setError('Google Sign-In is currently unavailable. Please try email login instead.');
+      };
+      document.body.appendChild(script);
+      return script;
+    };
+
+    const script = loadGoogleScript();
+
+    return () => {
+      // Clean up the script when component unmounts
+      if (script && script.parentNode) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+  const googleAuthMutation = useMutation({
+    mutationFn: async (idToken) => {
+      return userService.googleAuth(idToken);
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['user'], data.user);
+      queryClient.invalidateQueries(['user']).then(() => {
+        toast.success(data.message || "Logged in with Google successfully");
+        setGoogleLoading(false);
+        navigate("/chat");
+      });
+    },
+    onError: (error) => {
+      setError(error.message || "Google authentication failed");
+      setGoogleLoading(false);
+    }
+  });
+
+  // Add a function to check if Google API is loaded
+  const isGoogleScriptLoaded = () => {
+    return typeof window !== 'undefined' && typeof window.google !== 'undefined';
+  };
+
+  // Enhanced Google Sign-In initialization
+  const initializeGoogleSignIn = () => {
+    if (!isGoogleScriptLoaded()) {
+      console.error('Google API not loaded yet');
+      setError('Google Sign-In temporarily unavailable. Please try again later.');
+      setGoogleLoading(false);
+      return false;
+    }
+    
+    try {
+      // Validate Google Client ID before initialization
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId || clientId === '') {
+        console.error('Missing Google Client ID');
+        setError('Google Sign-In is not configured. Please try email login instead.');
+        setGoogleLoading(false);
+        return false;
+      }
+      
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleCallback,
+        cancel_on_tap_outside: true,
+        error_callback: (error) => {
+          console.error('Google Sign-In Error:', error);
+          setError('Google Sign-In failed. Please try email login instead.');
+          setGoogleLoading(false);
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error('Google Sign-In initialization error:', error);
+      setError('Google Sign-In configuration error. Please try email login instead.');
+      setGoogleLoading(false);
+      return false;
+    }
+  };
+
+  // Improved Google Sign-In handler without modal support
+  const handleGoogleSignIn = () => {
+    setGoogleLoading(true);
+    setError("");
+    
+    if (!initializeGoogleSignIn()) {
+      return;
+    }
+    
+    try {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed()) {
+          const reason = notification.getNotDisplayedReason();
+          console.error('Google Sign-In not displayed reason:', reason);
+          
+          // Provide specific guidance based on the error reason
+          if (reason === 'unregistered_origin') {
+            setError(
+              'This website is not registered with Google. Please contact support or check your configuration.'
+            );
+            
+            // Log helpful developer information to console
+            console.warn(
+              'Google OAuth Origin Error: Your origin is not registered',
+              window.location.origin
+            );
+            
+            // Suggest adding the origin to the Google Cloud Console
+            console.info(
+              'Ensure the following origin is added to "Authorized JavaScript origins" in the Google Cloud Console:',
+              window.location.origin
+            );
+          } else if (reason === 'browser_not_supported') {
+            setError('Your browser does not support Google Sign-In. Please try email login instead.');
+          } else if (reason === 'invalid_client') {
+            setError('Google Sign-In client configuration error. Please try email login instead.');
+          } else {
+            setError(`Google Sign-In unavailable (${reason}). Please try email login instead.`);
+          }
+          
+          setGoogleLoading(false);
+        } else if (notification.isSkippedMoment()) {
+          console.warn('Google Sign-In skipped reason:', notification.getSkippedReason());
+          setGoogleLoading(false);
+        } else if (notification.isDismissedMoment()) {
+          console.warn('Google Sign-In dismissed reason:', notification.getDismissedReason());
+          setGoogleLoading(false);
+        }
+      });
+    } catch (error) {
+      console.error('Google Sign-In prompt error:', error);
+      setError('Failed to show Google Sign-In. Please try email login instead.');
+      setGoogleLoading(false);
+    }
+  };
+
+  // Callback handler for Google sign-in
+  const handleGoogleCallback = (response) => {
+    if (response.credential) {
+      // Send the ID token to your server
+      googleAuthMutation.mutate(response.credential);
+    } else {
+      setGoogleLoading(false);
+      setError("Google sign-in failed. Please try again.");
+    }
+  };
+
+  const loginMutation = useMutation({
+    mutationFn: async (formData) => {
+      return userService.login(formData)
+    },
+    onSuccess: (data) => {
+      // Save token to localStorage or sessionStorage based on rememberMe
+      
+      queryClient.setQueryData(['user'], data.user);
+       queryClient.invalidateQueries(['user']).then(()=>{
+        toast.success("Logged in successfully")
+         setIsLoading(false);
+         navigate("/chat");    
+       })
+      // Redirect user
+    },
+    onError: (error) => {
+      setError(error.message || "Login failed");
+      setIsLoading(false);
+    },
+  })
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -112,9 +271,11 @@ const loginMutation = useMutation({
               <button
                 className="btn flex-1 bg-white hover:bg-gray-100 text-gray-800 font-semibold border-none"
                 type="button"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading}
               >
                 <IconBrandGoogle className="w-5 h-5 mr-2" />
-                <span>Google</span>
+                <span>{googleLoading ? 'Signing in...' : 'Google'}</span>
               </button>
 
               <button

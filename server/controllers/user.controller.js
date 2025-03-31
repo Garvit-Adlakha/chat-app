@@ -6,6 +6,8 @@ import { Request } from "../models/request.model.js";
 import { Chat } from "../models/chat.model.js";
 import emitEvent from "../utils/Emit.js";
 import { NEW_FRIEND_REQUEST, REFETCH_CHATS } from "../constants.js";
+import client, { verifyGoogleToken } from "../utils/googleClient.js";
+import crypto from 'crypto';
 
 export const registerUser = catchAsync(async (req, res, next) => {
     const { name, username, email, password, bio } = req.body;
@@ -274,4 +276,56 @@ export const getMyFriends = catchAsync(async (req, res, next) => {
         success: true,
         friends,
     });
+});
+
+export const googleAuth = catchAsync(async (req, res, next) => {
+  const { token } = req.body; // ID token from Google
+
+  if (!token) {
+    throw new AppError("Google token is required", 400);
+  }
+
+  try {
+    // Use the enhanced verification function instead of direct client verification
+    const payload = await verifyGoogleToken(token);
+    
+    // Check if user exists with this Google ID or email
+    let user = await User.findOne({ 
+      $or: [
+        { googleId: payload.sub },
+        { email: payload.email }
+      ] 
+    });
+
+    if (!user) {
+      // Create a new user
+      user = await User.create({
+        name: payload.name,
+        email: payload.email,
+        username: payload.email.split('@')[0] + Math.floor(Math.random() * 10000), // Generate a username
+        googleId: payload.sub,
+        avatar: {
+          url: payload.picture
+        },
+        password: crypto.randomBytes(16).toString('hex'), // Random password for Google users
+        isEmailVerified: payload.email_verified
+      });
+    } else if (!user.googleId) {
+      // If user exists with same email but not linked to Google
+      user.googleId = payload.sub;
+      if (payload.picture && (!user.avatar || !user.avatar.url)) {
+        user.avatar = { url: payload.picture };
+      }
+      await user.save();
+    }
+
+    // Update last active status
+    await user.updateLastActive();
+
+    // Generate token and send response
+    generateToken(res, user, user.isNewUser ? "Account created successfully" : "Welcome back", 200);
+  } catch (error) {
+    // Our verifyGoogleToken already wraps and enhances the error messages
+    throw new AppError(error.message, 401);
+  }
 });

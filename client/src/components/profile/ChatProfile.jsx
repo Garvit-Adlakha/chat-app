@@ -45,10 +45,8 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
 
     const deleteChatMutation = useMutation({
         mutationFn: async (chatId) => {
-            console.log('Sending delete request for chat ID:', chatId);
             try {
                 const response = await chatService.deleteGroup(chatId);
-                console.log('Delete response:', response);
                 return response;
             } catch (error) {
                 console.error('Delete request failed:', error);
@@ -56,7 +54,6 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
             }
         },
         onSuccess: (data) => {
-            console.log('Delete mutation succeeded:', data);
             toast.success('Group deleted successfully');
             queryClient.invalidateQueries(['chats']);
             queryClient.invalidateQueries(['groups']);
@@ -112,7 +109,6 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
     };
     
     const handleRemoveMembers = () => {
-        console.log('Remove members clicked for chat:', chat?._id);
         setRemoveMemberModal(true);
     };
     
@@ -127,7 +123,6 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
     };
     
     const confirmDelete = () => {
-        console.log('Deleting group with ID:', chat?._id);
         if (!chat?._id) {
             toast.error('Invalid chat ID');
             return;

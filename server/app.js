@@ -9,8 +9,12 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import connectDB from './database/db.js';
 import { Server } from 'socket.io';
-import {v4 as uuid} from 'uuid';
+import { v4 as uuid } from 'uuid';
 import { socketAuthenticator } from './middlewares/auth.middleware.js';
+import validateEnvironmentVariables from './utils/validateEnv.js';
+
+// Validate environment variables before doing anything else
+validateEnvironmentVariables();
 
 dotenv.config();
 await connectDB();
@@ -38,6 +42,8 @@ const limiter = rateLimit(
 )
 
 //middleware
+
+app.set('io', io)
 app.use(helmet())
 app.use(hpp())
 app.use("/api", limiter)
@@ -57,19 +63,21 @@ if (process.env.NODE_ENV === 'development') {
 
 //cors config
 const corsOptions = {
-    origin: process.env.CLIENT_URL || "http://localhost:3000/",
+    origin: ["http://localhost:3000"], // Allow localhost:3000
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
     allowedHeaders: ["Content-Type", "Authorization"]
 };
 
 app.use(cors(corsOptions));
+console.log(`CORS is configured for origins: ${corsOptions.origin}`);
 
 
 
 //api routes
 import userRoutes from './routes/user.route.js';
 import chatRoutes from './routes/chat.route.js';
+import { TYPING } from './constants.js';
 app.use('/api/v1/user', userRoutes)
 app.use('/api/v1/chat', chatRoutes)
 
@@ -79,9 +87,9 @@ export const userSocketIds = new Map();
 
 // Fix the Socket.IO middleware setup
 io.use((socket, next) => {
-  cookieParser()(socket.request, socket.request.res || {}, 
-    (err) => socketAuthenticator(err, socket, next)
-  );
+    cookieParser()(socket.request, socket.request.res || {},
+        (err) => socketAuthenticator(err, socket, next)
+    );
 });
 
 //sockets routes
@@ -93,39 +101,70 @@ io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
     const user = socket.user;
     console.log('User:', user);
-    userSocketIds.set(user._id.toString(),socket.id)
-    socket.on(NEW_MESSAGE,async({chatId,members,message})=>{
-        const messageForRealTime={
-            content:message,
-            _id:uuid(),
-            sender:{
-                _id:user._id,
-                name:user.name,
+    userSocketIds.set(user._id.toString(), socket.id)
+    socket.on(NEW_MESSAGE, async ({ chatId, members, message }) => {
+        const messageForRealTime = {
+            content: message,
+            _id: uuid(),
+            sender: {
+                _id: user._id,
+                name: user.name,
             },
-            chat:chatId,
-            createdAt:new Date().toISOString()
+            chat: chatId,
+            createdAt: new Date().toISOString()
         }
-        const messageForDB={
-            content:message,
-            sender:user._id,
-            chat:chatId
+        const messageForDB = {
+            content: message,
+            sender: user._id,
+            chat: chatId
         }
 
-        const membersSocket=getSockets(members)
-        io.to(membersSocket).emit(NEW_MESSAGE,{
+        const membersSocket = getSockets(members)
+        io.to(membersSocket).emit(NEW_MESSAGE, {
             chatId,
-            message:messageForRealTime
+            message: messageForRealTime
         })
-        io.to(membersSocket).emit(NEW_MESSAGE_ALERT,{
+        io.to(membersSocket).emit(NEW_MESSAGE_ALERT, {
             chatId,
         })
         try {
             await Message.create(messageForDB)
         } catch (error) {
             console.log(error)
-            
         }
     })
+
+    socket.on(TYPING, ({ members, chatId }) => {
+        console.log('Typing event received:', members, chatId);
+
+        const membersSocket = getSockets(members)
+        console.log('Members socket:', membersSocket);
+        
+        // Include user info in the typing event
+        socket.to(membersSocket).emit(TYPING, {
+            chatId,
+            user: {
+                _id: user._id,
+                name: user.name
+            }
+        });
+    });
+
+    socket.on(STOP_TYPING, ({ members, chatId }) => {
+        console.log('Stop typing event received:', members, chatId);
+
+        const membersSocket = getSockets(members)
+        console.log('Members socket:', membersSocket);
+        
+        // Include user info in the stop typing event
+        socket.to(membersSocket).emit(STOP_TYPING, {
+            chatId,
+            user: {
+                _id: user._id,
+                name: user.name
+            }
+        });
+    });
 
     socket.on('error', (error) => {
         console.error('Socket error:', error);
@@ -148,7 +187,7 @@ app.use((req, res) => {
 
 // Global Error handler
 import { errorHandler } from './middlewares/error.middleware.js';
-import { NEW_MESSAGE, NEW_MESSAGE_ALERT } from './constants.js';
+import { NEW_MESSAGE, NEW_MESSAGE_ALERT, STOP_TYPING } from './constants.js';
 import { getSockets } from './utils/sockets.js';
 import { Message } from './models/message.model.js';
 import { createGroupChats, createSingleChats } from './seeders/Chat.js';

@@ -1,4 +1,8 @@
 import React from 'react'
+import { transformImage } from '../../lib/feature'
+import { IconFileHorizontalFilled } from '@tabler/icons-react'
+// Add FileIcon component
+
 
 const RenderAttachments = (file,url) => {
     switch(file){
@@ -19,22 +23,17 @@ const RenderAttachments = (file,url) => {
             )
         case "audio":
             return (
-                <audio src={url} controls preload='none'/>
-            )
-        case "pdf":
-            return (
-                <iframe src={url} title="pdf" preload='none' className="w-full h-full object-cover" />
-            )
-        case "doc":
-            return (
-                <iframe src={url} title="doc" preload='none' className="w-full h-full object-cover" />
-            )
-        case "ppt": 
-            return (
-                <iframe src={url} title="ppt" preload='none' className="w-full h-full object-cover" />
-            )
+                <audio src={url} controls preload='none' className="w-full" />
+         )
         default:
-          //return file
+          return (
+            <div className="flex flex-col items-center p-6 bg-zinc-900 border border-gray-200 rounded-lg shadow-sm hover:bg-gray-900/90 transition-colors">
+              <IconFileHorizontalFilled />
+              <span className="text-xs text-gray-500 mt-1">
+            Document
+              </span>
+            </div>
+          )
     }
 }
 

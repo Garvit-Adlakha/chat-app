@@ -11,3 +11,6 @@ export const NEW_MESSAGE="NEW_MESSAGE"
 export const NEW_ATTACHMENT="NEW_ATTACHMENT"
 export const NEW_FRIEND="NEW_FRIEND"
 export const NEW_CHAT="NEW_CHAT"
+
+export const TYPING="TYPING"
+export const STOP_TYPING="STOP_TYPING"

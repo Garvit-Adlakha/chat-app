@@ -106,13 +106,56 @@ const chatService = {
   },
   sendAttachments: async ({chatId, files}) => {
     try {
-      const response = await axiosInstance.post(`/chat/upload/${chatId}`, files, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+      // Make sure we're appending chatId to the FormData
+      if (files instanceof FormData) {
+        // Check if chatId is already in FormData, if not add it
+        if (!files.has('chatId')) {
+          files.append('chatId', chatId);
         }
-      })
-      return response.data
+        
+        // Log the content type of files for debugging
+        if (files.getAll('files').length > 0) {
+          console.log('Files to upload:', files.getAll('files').map(f => ({
+            name: f.name,
+            type: f.type,
+            size: f.size
+          })));
+        }
+        
+        const response = await axiosInstance.post(`/chat/message`, files, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        return response.data;
+      } else {
+        // If files is not FormData, create a new FormData
+        const formData = new FormData();
+        formData.append('chatId', chatId);
+        
+        if (Array.isArray(files)) {
+          files.forEach(file => {
+            console.log('Adding file to FormData:', file.name, file.type);
+            formData.append('files', file);
+          });
+        } else {
+          console.log('Adding single file to FormData:', files.name, files.type);
+          formData.append('files', files);
+        }
+        
+        const response = await axiosInstance.post(`/chat/message`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        return response.data;
+      }
     } catch (error) {
+      console.error('Error uploading files:', error);
+      // Provide more detailed error information
+      if (error.response) {
+        console.error('Server responded with:', error.response.status, error.response.data);
+      }
       throw error;
     }
   },

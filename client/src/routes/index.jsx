@@ -9,7 +9,6 @@ const HomePage = lazy(() => import("../pages/HomePage"))
  const LoginPage = lazy(() => import("../pages/LoginPage"))
  const Signup = lazy(() => import("../pages/SignupPage"))
  const MainChat = lazy(() => import("../pages/MainChat"))
- const Groups = lazy(() => import("../pages/Groups"))
  const NotFound = lazy(() => import("../pages/NotFound"))
  // Move this to AuthContext
  
@@ -44,7 +43,6 @@ const HomePage = lazy(() => import("../pages/HomePage"))
             <Route index element={<MainChat />} />
             <Route path=":chatId" element={<MainChat />} />
           </Route>
-          <Route path="/groups" element={<Groups />} />
         </Route>
 
         {/* Public routes */}

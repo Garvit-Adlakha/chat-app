@@ -25,7 +25,6 @@ const FriendSearch = ({ isOpen, onClose }) => {
     const handleAddFriend = (id) => {
         
         mutation.mutate(id)
-        console.log('Added friend:', id);
     }
 
     // Prevent scrolling when modal is open

@@ -56,7 +56,7 @@ export function TypewriterEffectSmoothDemo() {
             <button
               key={button.text}
               onClick={handleNavigation(button.path)}
-              className={`w-full sm:w-48 h-12 rounded-full font-semibold text-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 ${BUTTON_VARIANTS[button.variant]}`}
+              className={`w-full sm:w-48 h-12 rounded-full font-semibold text-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 hover:bg-zinc-900 transition-all duration-300 ${BUTTON_VARIANTS[button.variant]}`}
             >
               {button.text}
             </button>

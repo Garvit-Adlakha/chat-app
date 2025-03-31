@@ -8,28 +8,27 @@ dotenv.config();
 
 export const isAuthenticated = catchAsync(async (req, res, next) => {
   const token = req.cookies.token;
-  
   if (!token) {
-    throw new AppError("Authentication required. Please login.", 401);
+    throw new AppError("You are not logged in. Please log in to get access.", 401);
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId);
+    console.log(decoded);
+    req.id = decoded.userId;
+    req.user = await User.findById(req.id);
 
-    if (!user) {
-      throw new AppError("User no longer exists.", 401);
+    if (!req.user) {
+      throw new AppError("User not found", 404);
     }
 
-    req.id = decoded.userId;
-    req.user = user;
     next();
   } catch (error) {
     if (error.name === "JsonWebTokenError") {
-      throw new AppError("Invalid authentication token.", 401);
+      throw new AppError("Invalid token. Please log in again.", 401);
     }
     if (error.name === "TokenExpiredError") {
-      throw new AppError("Your session has expired. Please login again.", 401);
+      throw new AppError("Your token has expired. Please log in again.", 401);
     }
     throw error;
   }

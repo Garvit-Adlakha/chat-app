@@ -1,8 +1,9 @@
 import { useParams } from 'react-router-dom';
-import ChatWindow from '../components/chat/ChatWindow';
-import ChatWindowOnStart from '../components/chat/ChatWindowOnStart';
 import AppLayout from '../components/layout/AppLayout';
-import { useEffect, useState } from 'react';
+import { useEffect, useState,lazy } from 'react';
+const ChatWindow=lazy(() => import('../components/chat/ChatWindow'));
+const ChatWindowOnStart=lazy(() => import('../components/chat/ChatWindowOnStart'));
+
 
 const MainChat = () => {
     const { chatId } = useParams();

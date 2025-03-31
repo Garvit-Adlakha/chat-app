@@ -3,13 +3,13 @@ import { SidebarProvider } from "../ui/sidebar";
 import {SideBar} from "./SideBar";
 import useSocketStore from "../socket/Socket";
 import { useCallback, useEffect, useRef } from "react";
-import { NEW_FRIEND_REQUEST, NEW_FRIEND_REQUEST_ACCEPTED, NEW_FRIEND_REQUEST_REJECTED, NEW_MESSAGE_ALERT, TYPING, STOP_TYPING } from "../../constants/event";
+import { NEW_FRIEND_REQUEST, NEW_FRIEND_REQUEST_ACCEPTED, NEW_FRIEND_REQUEST_REJECTED, NEW_MESSAGE_ALERT, TYPING, STOP_TYPING, USER_STATUS_CHANGE } from "../../constants/event";
 import useChatStore from "../../store/chatStore";
 
 const AppLayout = () => (WrappedComponent) => {
     const WithLayout = (props) => {
         const { socket, connect, disconnect } = useSocketStore();
-        const { updateMessageCount, messageCounts, setUserTyping, removeUserTyping } = useChatStore();
+        const { updateMessageCount, messageCounts, setUserTyping, removeUserTyping, setUserOnlineStatus } = useChatStore();
         const connectedRef = useRef(false);
 
         // Set up socket connection
@@ -19,7 +19,6 @@ const AppLayout = () => (WrappedComponent) => {
                 connectedRef.current = true;
                 
                 socket.on('connect', () => {
-                    console.log('Socket connected:', socket.id);
                 });
             }
             
@@ -77,16 +76,30 @@ const AppLayout = () => (WrappedComponent) => {
             };
         }, [socket, setUserTyping, removeUserTyping]);
 
+        // Handle user status changes
+        useEffect(() => {
+            if (!socket) return;
+            
+            // Listen for user status changes
+            socket.on(USER_STATUS_CHANGE, ({ userId, isOnline, lastActive }) => {
+                setUserOnlineStatus(userId, isOnline, lastActive);
+            });
+            
+            return () => {
+                socket.off(USER_STATUS_CHANGE);
+            };
+        }, [socket, setUserOnlineStatus]);
+
         return (
             <>
                 <Title />
-                <div className="flex flex-col md:grid md:grid-cols-4 max-h-[calc(100vh-4rem)] mt-2 sm:mt-4 h-full px-2 sm:px-4">
-                    <div className="hidden md:inline-block md:col-span-1 h-full">
+                <div className="flex flex-col md:grid md:grid-cols-5 lg:grid-cols-4 max-h-[calc(100vh-10rem)] md:max-h-[calc(100vh-4rem)] mt-2 sm:mt-4 h-full px-2 sm:px-4">
+                    <div className=" md:inline-block md:col-span-2 lg:col-span-1 h-full z-20">
                         <SidebarProvider>
                             <SideBar />
                         </SidebarProvider>
                     </div>
-                    <div className="w-full md:col-span-3 h-full md:pl-3">
+                    <div className="w-full md:col-span-3  h-full md:pl-3 z-10">
                         <WrappedComponent {...props} />
                     </div>
                 </div>

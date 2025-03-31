@@ -39,53 +39,61 @@ const GroupsSection = () => {
     }
 
     return (
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto flex-1 h-full">
             <div className="border-b border-neutral-200 dark:border-neutral-700">
-                <div className="pb-2 border-neutral-200 dark:border-neutral-700">
+                <div className="pb-2 border-neutral-200 dark:border-neutral-700 px-2 sm:px-4">
                     <Search
                         placeholder="Search groups..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div className="p-2">
+                <div className="p-2 sm:p-4">
                     <button 
-                        className="w-full btn bg-black/50 hover:bg-black/60 text-white rounded-lg cursor-pointer py-2 flex items-center justify-center gap-2" 
+                        className="w-full  h-full btn bg-black/50 hover:bg-black/60 text-white rounded-lg cursor-pointer px-3 py-1.5 sm:px-4 sm:py-2.5 flex items-center justify-center gap-1.5 sm:gap-2" 
                         onClick={handleCreateGroup}
                     >
-                        <IconUsersPlus className="w-5 h-5" />
-                        <span className="text-sm font-medium">Create new Group</span>
+                        <IconUsersPlus className="w-fit h-fit" />
+                        <span className="inline text-sm font-medium">Create new Group</span>
                     </button>
                 </div>
             </div>
 
-            <div className="p-4">
-                <h3 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-3">
+            <div className="p-2 sm:p-4">
+                <h3 className="text-xs sm:text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-2 sm:mb-3">
                     Groups
                 </h3>
-                <div className="space-y-2">
-                    {filteredGroups.map(group => (
-                        <div 
-                            onClick={() => groupClickHandler(group._id)}
-                            key={group._id} 
-                            className="flex items-center p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors cursor-pointer"
-                        >
-                            <div className="avatar mr-2">
-                                <div className="w-10 h-10 rounded-full overflow-hidden">
-
-                                    {/* update avatar logic */}
-                                    <img 
-                                        src={group.groupIcon?.url} 
-                                        alt={group.name} 
-                                        className="w-full h-full object-cover"
-                                    />
+                <div className="space-y-1 sm:space-y-2">
+                    {filteredGroups.length > 0 ? (
+                        filteredGroups.map(group => (
+                            <div 
+                                onClick={() => groupClickHandler(group._id)}
+                                key={group._id} 
+                                className="flex items-center p-1.5 sm:p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors cursor-pointer"
+                            >
+                                <div className="avatar mr-1.5 sm:mr-2">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden">
+                                        <img 
+                                            src={group.groupIcon?.url} 
+                                            alt={group.name} 
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = "https://via.placeholder.com/40?text=" + group.name.charAt(0);
+                                            }}
+                                        />
+                                    </div>
                                 </div>
+                                <span className="text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate">
+                                    {group.name}
+                                </span>
                             </div>
-                            <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                                {group.name}
-                            </span>
+                        ))
+                    ) : (
+                        <div className="text-center py-4 text-neutral-500 text-xs sm:text-sm">
+                            No groups found
                         </div>
-                    ))}
+                    )}
                 </div>
             </div>
 

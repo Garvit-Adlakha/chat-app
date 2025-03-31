@@ -1,7 +1,7 @@
 import { Form, Link, useFormAction, useNavigate } from "react-router-dom"
 import { HoverBorderGradient } from "../components/ui/hover-border-gradient";
 import { IconMessage, IconRobot, IconHeartHandshake, IconShieldLock, IconBrandGoogle, IconBrandGithub } from '@tabler/icons-react';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import userService from "../service/userService";
 import toast from "react-hot-toast";
@@ -12,47 +12,170 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState("");
+  const googleButtonRef = useRef(null);
 
-  const queryClient = useQueryClient()
-  const formAction = useFormAction()
-  const [error, setError] = useState("")
+  const queryClient = useQueryClient();
+  const formAction = useFormAction();
+  
+  const GOOGLE_SCRIPT_ID = "google-signin-script";
+  const MAX_RETRIES = 3;
 
   // Add Google Sign-In SDK with better error handling
   useEffect(() => {
-    console.log("Using Google Client ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
-    console.log("Current origin:", window.location.origin);
+ 
     
     // Load the Google Sign-In SDK
     const loadGoogleScript = () => {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
+      if (document.getElementById(GOOGLE_SCRIPT_ID)) return;
+
+      const script = document.createElement("script");
+      script.id = GOOGLE_SCRIPT_ID;
+      script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
-      script.onerror = () => {
-        console.error('Failed to load Google Sign-In SDK');
-        setError('Google Sign-In is currently unavailable. Please try email login instead.');
+
+      script.onload = () => {
+        initializeGoogleSignIn();
       };
+
+      script.onerror = () => {
+        setError("Google Sign-In is unavailable. Please try email login.");
+      };
+
       document.body.appendChild(script);
-      return script;
     };
 
-    const script = loadGoogleScript();
+    loadGoogleScript();
 
     return () => {
-      // Clean up the script when component unmounts
-      if (script && script.parentNode) {
-        document.body.removeChild(script);
+      const existingScript = document.getElementById(GOOGLE_SCRIPT_ID);
+      if (existingScript) {
+        existingScript.remove();
       }
     };
   }, []);
 
+  // Check if Google API is loaded
+  const isGoogleScriptLoaded = () => {
+    return typeof window !== "undefined" && typeof window.google !== "undefined";
+  };
+
+  // Initialize Google Sign-In with Retry Mechanism
+  const initializeGoogleSignIn = (attempt = 1) => {
+    if (!isGoogleScriptLoaded()) {
+      if (attempt <= MAX_RETRIES) {
+        setTimeout(() => initializeGoogleSignIn(attempt + 1), 1500); // Retry after 1.5s
+      } else {
+        setError("Google Sign-In temporarily unavailable. Please try again later.");
+      }
+      return;
+    }
+
+    try {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        throw new Error("Missing Google Client ID");
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleCallback,
+        cancel_on_tap_outside: true,
+        prompt_parent_id: "google-one-tap",
+        error_callback: (error) => {
+          setError("Google Sign-In failed. Please try again.");
+          setGoogleLoading(false);
+        },
+      });
+      
+      // Render the Google Sign-In button instead of using prompt
+      renderGoogleButton();
+    } catch (error) {
+      setError("Google Sign-In configuration error. Please try again.");
+      setGoogleLoading(false);
+    }
+  };
+
+  // Render Google Sign-In button
+  const renderGoogleButton = () => {
+    if (!isGoogleScriptLoaded() || !googleButtonRef.current) return;
+    
+    try {
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        type: "standard",
+        theme: "filled_blue",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        logo_alignment: "left",
+        width: googleButtonRef.current.offsetWidth
+      });
+    } catch (error) {
+      console.error("Failed to render Google button:", error);
+    }
+  };
+
+  // Handle Google Sign-In Prompt - this is now a fallback
+  const handleGoogleSignIn = () => {
+    setGoogleLoading(true);
+    setError("");
+
+    if (!isGoogleScriptLoaded()) {
+      setError("Google Sign-In temporarily unavailable. Please try again later.");
+      setGoogleLoading(false);
+      return;
+    }
+
+    try {
+      // Use explicit user interaction by programmatically clicking the rendered button
+      const googleButton = document.querySelector('[aria-labelledby="button-label"]');
+      if (googleButton) {
+        googleButton.click();
+        return;
+      }
+      
+      // Fallback to prompt if button is not rendered
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed()) {
+          const reason = notification.getNotDisplayedReason();
+
+          if (reason === "browser_not_supported") {
+            setError("Your browser does not support Google Sign-In.");
+          } else if (reason === "invalid_client") {
+            setError("Invalid Google Sign-In configuration.");
+          } else if (reason === "missing_client_id") {
+            setError("Missing Google Client ID. Contact administrator.");
+          } else if (reason === "unregistered_origin") {
+            setError("This website is not registered for Google Sign-In.");
+          } else if (reason === "suppressed_by_user") {
+            setError("Sign-in prompt was previously dismissed. Try clearing cookies or using incognito mode.");
+          } else if (reason === "third_party_cookies_disabled") {
+            setError("Enable third-party cookies in your browser settings to use Google Sign-In.");
+          } else {
+            setError(`Google Sign-In unavailable: ${reason}`);
+          }
+          setGoogleLoading(false);
+        } else if (notification.isSkippedMoment()) {
+          setGoogleLoading(false);
+        } else if (notification.isDismissedMoment()) {
+          setGoogleLoading(false);
+        }
+      });
+    } catch (error) {
+      setError("Failed to show Google Sign-In. Please try again.");
+      setGoogleLoading(false);
+    }
+  };
+
+  // Google Authentication Mutation
   const googleAuthMutation = useMutation({
     mutationFn: async (idToken) => {
       return userService.googleAuth(idToken);
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['user'], data.user);
-      queryClient.invalidateQueries(['user']).then(() => {
+      queryClient.setQueryData(["user"], data.user);
+      queryClient.invalidateQueries(["user"]).then(() => {
         toast.success(data.message || "Logged in with Google successfully");
         setGoogleLoading(false);
         navigate("/chat");
@@ -61,107 +184,8 @@ const LoginPage = () => {
     onError: (error) => {
       setError(error.message || "Google authentication failed");
       setGoogleLoading(false);
-    }
+    },
   });
-
-  // Add a function to check if Google API is loaded
-  const isGoogleScriptLoaded = () => {
-    return typeof window !== 'undefined' && typeof window.google !== 'undefined';
-  };
-
-  // Enhanced Google Sign-In initialization
-  const initializeGoogleSignIn = () => {
-    if (!isGoogleScriptLoaded()) {
-      console.error('Google API not loaded yet');
-      setError('Google Sign-In temporarily unavailable. Please try again later.');
-      setGoogleLoading(false);
-      return false;
-    }
-    
-    try {
-      // Validate Google Client ID before initialization
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      if (!clientId || clientId === '') {
-        console.error('Missing Google Client ID');
-        setError('Google Sign-In is not configured. Please try email login instead.');
-        setGoogleLoading(false);
-        return false;
-      }
-      
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: handleGoogleCallback,
-        cancel_on_tap_outside: true,
-        error_callback: (error) => {
-          console.error('Google Sign-In Error:', error);
-          setError('Google Sign-In failed. Please try email login instead.');
-          setGoogleLoading(false);
-        }
-      });
-      return true;
-    } catch (error) {
-      console.error('Google Sign-In initialization error:', error);
-      setError('Google Sign-In configuration error. Please try email login instead.');
-      setGoogleLoading(false);
-      return false;
-    }
-  };
-
-  // Improved Google Sign-In handler without modal support
-  const handleGoogleSignIn = () => {
-    setGoogleLoading(true);
-    setError("");
-    
-    if (!initializeGoogleSignIn()) {
-      return;
-    }
-    
-    try {
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed()) {
-          const reason = notification.getNotDisplayedReason();
-          console.error('Google Sign-In not displayed reason:', reason);
-          
-          // Provide specific guidance based on the error reason
-          if (reason === 'unregistered_origin') {
-            setError(
-              'This website is not registered with Google. Please contact support or check your configuration.'
-            );
-            
-            // Log helpful developer information to console
-            console.warn(
-              'Google OAuth Origin Error: Your origin is not registered',
-              window.location.origin
-            );
-            
-            // Suggest adding the origin to the Google Cloud Console
-            console.info(
-              'Ensure the following origin is added to "Authorized JavaScript origins" in the Google Cloud Console:',
-              window.location.origin
-            );
-          } else if (reason === 'browser_not_supported') {
-            setError('Your browser does not support Google Sign-In. Please try email login instead.');
-          } else if (reason === 'invalid_client') {
-            setError('Google Sign-In client configuration error. Please try email login instead.');
-          } else {
-            setError(`Google Sign-In unavailable (${reason}). Please try email login instead.`);
-          }
-          
-          setGoogleLoading(false);
-        } else if (notification.isSkippedMoment()) {
-          console.warn('Google Sign-In skipped reason:', notification.getSkippedReason());
-          setGoogleLoading(false);
-        } else if (notification.isDismissedMoment()) {
-          console.warn('Google Sign-In dismissed reason:', notification.getDismissedReason());
-          setGoogleLoading(false);
-        }
-      });
-    } catch (error) {
-      console.error('Google Sign-In prompt error:', error);
-      setError('Failed to show Google Sign-In. Please try email login instead.');
-      setGoogleLoading(false);
-    }
-  };
 
   // Callback handler for Google sign-in
   const handleGoogleCallback = (response) => {
@@ -201,7 +225,6 @@ const LoginPage = () => {
     setError("");
     const formData = new FormData(event.target);
     const data = Object.fromEntries(formData);
-    console.log(data);
     loginMutation.mutate(data);
   }
 
@@ -212,6 +235,7 @@ const LoginPage = () => {
 
   return (
     <div className="hero min-h-screen bg-gradient-to-r from-[#0f0c29] via-[#302b63] to-[#24243e]">
+      <div id="google-one-tap" className="absolute"></div>
       <div className="hero-content flex-col lg:flex-row-reverse animate-fadeIn gap-8 max-w-6xl">
         <div className="text-center lg:text-left lg:w-1/2 mx-5 text-white">
           <h1 className="text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">
@@ -268,6 +292,7 @@ const LoginPage = () => {
 
             {/* Social Login Options */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              {/* Custom Google button - fallback option */}
               <button
                 className="btn flex-1 bg-white hover:bg-gray-100 text-gray-800 font-semibold border-none"
                 type="button"
@@ -277,16 +302,7 @@ const LoginPage = () => {
                 <IconBrandGoogle className="w-5 h-5 mr-2" />
                 <span>{googleLoading ? 'Signing in...' : 'Google'}</span>
               </button>
-
-              <button
-                className="btn flex-1 bg-gray-800 hover:bg-gray-900 text-white font-semibold border-none"
-                type="button"
-              >
-                <IconBrandGithub className="w-5 h-5 mr-2" />
-                <span>GitHub</span>
-              </button>
             </div>
-
             <div className="divider text-white text-sm opacity-60">or continue with email</div>
 
             {error && (

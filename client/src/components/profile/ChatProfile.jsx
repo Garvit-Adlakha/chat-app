@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -20,6 +20,9 @@ import AddMemberModal from '../chat/AddMemberModal';
 import toast from 'react-hot-toast';
 import chatService from '../../service/chatService';
 import RemoveMemberModal from '../chat/RemoveMemberModal';
+import useChatStore from '../../store/chatStore';
+import { formatLastActive } from '../../features/feature';
+import { useClickOutside } from '../../hooks/UseClickOutside';
 
 const ChatProfile = ({ chat, isOpen, onClose }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -32,6 +35,7 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
     const [addMemberModal, setAddMemberModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [removeMemberModal, setRemoveMemberModal] = useState(false);
+    const sidebarRef = useRef(null);
 
     const { data: user } = useQuery({
         queryKey: ['user'],
@@ -95,10 +99,56 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
         };
     }, [isOpen, onClose]);
 
+    const renameMutation = useMutation({
+        mutationFn: ({chatId, name}) => chatService.renameGroup({chatId, name}),
+        onSuccess: () => {
+            toast.success('Group name updated successfully');
+            queryClient.invalidateQueries(['chats']);
+            queryClient.invalidateQueries(['groups']);
+            setIsEditing(false);
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || 'Failed to update group name');
+            setIsEditing(false);
+        }
+    });
+
+    const groupLeaveMutation=useMutation({
+        mutationFn:({chatId})=>chatService.leaveGroup({chatId}),
+        onSuccess:()=>{
+            toast.success("Left group successfully")
+            queryClient.invalidateQueries(['chats']);
+            queryClient.invalidateQueries(['groups']);
+        },
+        onError:(error)=>{
+            toast.error(error.response?.data?.message || "Failed to leave group")
+        }
+    })
+
     const handleSaveName = () => {
-        // TODO: Implement save functionality
-        setIsEditing(false);
+        const newName = chatInfo.name.trim();
+        
+        if (!newName) {
+            toast.error('Group name cannot be empty');
+            return;
+        }
+        
+        if (newName === chat.name) {
+            setIsEditing(false);
+            return;
+        }
+
+        if (newName.length > 50) {
+            toast.error('Group name should be less than 50 characters');
+            return;
+        }
+
+        renameMutation.mutate({
+            chatId: chat._id,
+            name: newName
+        });
     };
+
     const handlerAddMember = () => {
         setAddMemberModal(true);
     };
@@ -136,12 +186,43 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
         setShowDeleteConfirm(false);
     };
 
+    const leaveGroupHandler = () => {
+        groupLeaveMutation.mutate({chatId: chat._id})
+        queryClient.invalidateQueries(['chats']);
+        queryClient.invalidateQueries(['groups']);
+        navigate('/chat');
+        onClose();
+    }
+
+
+    useClickOutside(sidebarRef, (event) => {
+        if (isOpen) {
+            onClose();
+        }
+    });
+
+
+
+
+
     const creatorId = chat?.isGroupChat ? chat?.creator : null
     const creator = chat?.isGroupChat ? chat?.members.find(member => member._id === creatorId) : null
 
     const otherMember = !chat?.isGroupChat ?
         chat?.members.find(member => member._id !== user?._id) :
         null;
+
+    const { isUserOnline, getUserLastActive } = useChatStore();
+    
+    // For direct chats: check if the other user is online
+    const isOtherUserOnline = !chat?.isGroupChat && otherMember 
+        ? isUserOnline(otherMember._id)
+        : false;
+    
+    // Get last active time for direct chats
+    const lastActive = !chat?.isGroupChat && otherMember
+        ? getUserLastActive(otherMember._id)
+        : null;
 
     if (selectedUserId) {
         return (
@@ -169,7 +250,7 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                     backdrop-blur-sm bg-black/50
                 `}
             >
-                <div className="
+                <div ref={sidebarRef} className="
                     fixed right-0 top-0 bottom-0
                     w-full sm:w-96 
                     bg-white dark:bg-neutral-800
@@ -200,7 +281,7 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                     <div className="flex-1 overflow-y-auto">
                         {/* Profile Section */}
                         <div className="p-6 text-center">
-                            <div className="mb-4">
+                            <div className="mb-4 relative">
                                 {chat?.isGroupChat ? (
                                     <div className="avatar placeholder mx-auto">
                                         <div className="w-24 rounded-full bg-neutral-200 dark:bg-neutral-700 mx-auto">
@@ -209,15 +290,24 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                                     </div>
                                 ) : (
                                     <div className="avatar mx-auto">
-                                        <div className="w-24 rounded-full ring ring-primary ring-offset-2">
+                                        <div className="w-24 rounded-full ring ring-primary ring-offset-2 relative">
                                             <Avatar
                                                 src={otherMember?.avatar}
                                                 alt={otherMember?.name}
                                             />
+                                            {isOtherUserOnline && (
+                                                <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full ring-2 ring-neutral-800" />
+                                            )}
                                         </div>
                                     </div>
                                 )}
                             </div>
+                            
+                            {!chat?.isGroupChat && (
+                                <p className="text-sm text-neutral-400 mt-1">
+                                    {isOtherUserOnline ? 'Online' : lastActive ? `Last seen ${formatLastActive(lastActive)}` : ''}
+                                </p>
+                            )}
 
                             {isEditing ? (
                                 <div className="flex items-center gap-2 justify-center">
@@ -346,6 +436,8 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                         </div>
                     </div>
 
+                
+
                     {/* Action Button - Fixed at bottom */}
                     {chat?.isGroupChat && chat?.creator === user._id && (
                         <div className="
@@ -356,7 +448,7 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                             flex flex-col gap-2
                         ">
                             <button
-                                className="btn btn-primary w-full gap-2 hover:bg-primary-focus transition-colors"
+                                className="btn w-full gap-2 bg-indigo-800 hover:bg-indigo-900 text-white border-none transition-colors"
                                 onClick={() => handlerAddMember()}
                             >
                                 <IconUserPlus className="w-5 h-5" />
@@ -364,7 +456,7 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                             </button>
                             
                             <button
-                                className="btn bg-amber-500 hover:bg-amber-600 text-white w-full gap-2 border-none transition-colors"
+                                className="btn bg-emerald-800 hover:bg-emerald-900 text-white w-full gap-2 border-none transition-colors"
                                 onClick={handleRemoveMembers}
                             >
                                 <IconUserMinus className="w-5 h-5" />
@@ -372,7 +464,7 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                             </button>
                             
                             <button
-                                className="btn bg-red-500 hover:bg-red-600 text-white w-full gap-2 border-none transition-colors"
+                                className="btn bg-neutral-800 hover:bg-neutral-900 text-white w-full gap-2 border-none transition-colors"
                                 onClick={handleDeleteGroup}
                                 disabled={deleteChatMutation.isPending}
                             >
@@ -390,6 +482,15 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                             </button>
                         </div>
                     )}
+                        <div>
+                            { chat?.isGroupChat &&
+                    <button className='btn w-full gap-2 bg-blue-800 hover:bg-blue-900 text-white border-none transition-colors'
+                                onClick={leaveGroupHandler}
+                            >
+                                <span>Leave Group</span>
+                            </button>
+}
+                    </div>
                 </div>
             </dialog>
             
@@ -415,7 +516,7 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                             Cancel
                         </button>
                         <button 
-                            className="btn bg-red-500 hover:bg-red-600 text-white border-none min-w-[100px]"
+                            className="btn bg-neutral-800 hover:bg-neutral-900 text-white border-none min-w-[100px]"
                             onClick={confirmDelete}
                             disabled={deleteChatMutation.isPending}
                         >

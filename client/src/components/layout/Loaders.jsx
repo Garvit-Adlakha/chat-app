@@ -1,96 +1,135 @@
-export const LayoutLoader = () => {
+export const AppLayoutLoader = () => {
     return (
-        <>
-            <div className="grid grid-cols-4 max-h-[calc(100vh-4rem)] mt-4 h-full">
-                <div className="hidden md:inline-block md:col-span-1 h-full">
-                    {/* Sidebar Skeleton */}
-                    <div className="flex h-full">
-                        {/* Navigation Column */}
-                        <div className="w-16 bg-base-200 h-full rounded-2xl mr-2">
-                            <div className="flex flex-col items-center gap-4 p-4">
-                                <div className="skeleton w-10 h-10 rounded-full"></div>
-                                <div className="skeleton w-8 h-8"></div>
-                                <div className="skeleton w-8 h-8"></div>
-                                <div className="skeleton w-8 h-8"></div>
-                            </div>
+        <div className="flex flex-col h-[calc(100vh-4rem)] bg-neutral-900">
+         
+            {/* Main Content Area */}
+            <div className="flex flex-1 p-4 gap-4 overflow-hidden">
+                {/* Sidebar */}
+                <div className="hidden md:flex gap-2 w-80">
+                    {/* Navigation Bar */}
+                    <div className="w-16 h-full bg-neutral-800/50 rounded-2xl p-3 flex flex-col items-center gap-6">
+                        <div className="w-10 h-10 bg-neutral-800 rounded-full animate-pulse"></div>
+                        <div className="space-y-4 flex-1">
+                            {[1,2,3,4].map(i => (
+                                <div key={i} className="w-8 h-8 bg-neutral-800 rounded-lg animate-pulse"></div>
+                            ))}
                         </div>
-                        {/* Sidebar Content */}
-                        <div className="flex-1 bg-base-100 rounded-2xl p-4">
-                            <div className="skeleton h-8 w-full mb-4"></div>
-                            <div className="flex flex-col gap-4">
-                                {[1,2,3,4,5].map(i => (
-                                    <div key={i} className="flex items-center gap-4">
-                                        <div className="skeleton w-12 h-12 rounded-full"></div>
-                                        <div className="flex-1">
-                                            <div className="skeleton h-4 w-full"></div>
-                                        </div>
+                        <div className="w-8 h-8 bg-neutral-800 rounded-lg animate-pulse"></div>
+                    </div>
+
+                    {/* Chat List */}
+                    <div className="flex-1 bg-neutral-800/50 rounded-2xl p-4">
+                        <div className="h-10 bg-neutral-800 rounded-lg animate-pulse mb-4"></div>
+                        <div className="space-y-3">
+                            {[1,2,3,4,5,6].map(i => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-neutral-800 rounded-full animate-pulse"></div>
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-4 bg-neutral-800 rounded animate-pulse"></div>
+                                        <div className="h-3 w-24 bg-neutral-800/60 rounded animate-pulse"></div>
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
-                <div className="col-span-3 h-full mr-3">
-                    <div className="skeleton h-full w-full"></div>
+
+                {/* Chat Area */}
+                <div className="flex-1 bg-neutral-800/50 rounded-2xl overflow-hidden flex flex-col">
+                    {/* Chat Header */}
+                    <div className="p-4 border-b border-neutral-700/50 flex items-center gap-3">
+                        <div className="w-12 h-12 bg-neutral-800 rounded-full animate-pulse"></div>
+                        <div className="flex-1 space-y-2">
+                            <div className="h-5 w-32 bg-neutral-800 rounded animate-pulse"></div>
+                            <div className="h-3 w-24 bg-neutral-800/60 rounded animate-pulse"></div>
+                        </div>
+                    </div>
+
+                    {/* Messages Area */}
+                    <div className="flex-1 p-4 space-y-4">
+                        {[1,2,3,4,5].map(i => (
+                            <div key={i} 
+                                className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`${i % 2 === 0 ? 'bg-blue-500/20' : 'bg-neutral-800'} 
+                                    w-64 h-16 rounded-2xl animate-pulse`}>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Chat Input */}
+                    <div className="p-4 border-t border-neutral-700/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-neutral-800 rounded-full animate-pulse"></div>
+                            <div className="flex-1 h-12 bg-neutral-800 rounded-full animate-pulse"></div>
+                            <div className="w-10 h-10 bg-neutral-800 rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
                 </div>
-                <div className=""></div>
             </div>
-        </>
+        </div>
     )
 }
 
-export const AppLayoutLoader = () => {
-    return (
-        <>
-            <div className="h-16 bg-gradient-to-r from-[#0f0c29] via-[#302b63] to-[#24243e] w-full">
-                <div className="container mx-auto px-4 h-full flex items-center justify-between">
-                    <div className="skeleton w-32 h-8"></div>
-                    <div className="flex space-x-4">
-                        <div className="skeleton w-10 h-10 rounded-full"></div>
-                    </div>
-                </div>
+// Update other loaders with the same color scheme
+export const HomePageLoader = () => {
+  return (
+    <div className="bg-neutral-900 h-screen flex flex-col items-center justify-center">
+      <div className="w-full max-w-3xl mx-auto text-center space-y-12">
+        {/* Title skeleton */}
+        <div className="space-y-6">
+          <div className="h-16 w-3/4 mx-auto bg-neutral-800 rounded-2xl animate-pulse"></div>
+          <div className="h-8 w-1/2 mx-auto bg-neutral-800/50 rounded-xl animate-pulse"></div>
+        </div>
+        
+        <div className="flex flex-wrap justify-center gap-6 mt-8">
+          <div className="w-48 h-12 bg-neutral-800 rounded-full animate-pulse"></div>
+          <div className="w-48 h-12 bg-neutral-800/50 rounded-full animate-pulse"></div>
+        </div>
+
+        <div className="w-3/4 mx-auto mt-12 grid grid-cols-2 gap-4">
+          <div className="h-24 bg-neutral-800/30 rounded-2xl animate-pulse"></div>
+          <div className="h-24 bg-neutral-800/30 rounded-2xl animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const LoginPageLoader = () => {
+  return (
+    <div className="bg-neutral-900 min-h-screen flex items-center justify-center">
+      <div className="hero-content flex-col lg:flex-row-reverse gap-8 max-w-6xl w-full">
+        <div className="lg:w-1/2 mx-5 space-y-6">
+          <div className="h-10 w-3/4 bg-neutral-800 rounded-xl animate-pulse"></div>
+          <div className="h-24 bg-neutral-800/50 rounded-xl animate-pulse"></div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            {[1, 2].map(i => (
+              <div key={i} className="h-32 bg-neutral-800/30 rounded-xl animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+
+        <div className="w-full lg:w-1/2 max-w-md">
+          <div className="bg-neutral-800/20 backdrop-blur-sm p-8 rounded-2xl border border-neutral-700">
+            <div className="space-y-8">
+              <div className="h-8 w-1/2 mx-auto bg-neutral-800 rounded-lg animate-pulse"></div>
+              
+              <div className="space-y-6">
+                {[1, 2].map(i => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-4 w-1/4 bg-neutral-800/50 rounded animate-pulse"></div>
+                    <div className="h-12 w-full bg-neutral-800 rounded-lg animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="h-12 w-full bg-blue-900/20 rounded-full animate-pulse"></div>
             </div>
-            <div className="grid grid-cols-4 max-h-[calc(100vh-4rem)] mt-4 h-full">
-                {/* Sidebar skeleton */}
-                <div className="hidden md:inline-block md:col-span-1 h-full">
-                    <div className="flex h-full">
-                        {/* Navigation column */}
-                        <div className="w-16 bg-neutral-200 dark:bg-neutral-900 h-full rounded-2xl mr-2 flex flex-col items-center py-6">
-                            <div className="skeleton w-10 h-10 rounded-full mb-8"></div>
-                            <div className="space-y-5 flex flex-col items-center">
-                                <div className="skeleton w-6 h-6 rounded-md"></div>
-                                <div className="skeleton w-6 h-6 rounded-md"></div>
-                                <div className="skeleton w-6 h-6 rounded-md"></div>
-                            </div>
-                        </div>
-                        
-                        {/* Content column */}
-                        <div className="flex-1 bg-white dark:bg-neutral-800 h-full p-4 rounded-2xl">
-                            <div className="skeleton w-full h-10 mb-4"></div>
-                            <div className="space-y-3 mt-6">
-                                {[1, 2, 3, 4, 5].map((i) => (
-                                    <div key={i} className="flex items-center p-2">
-                                        <div className="skeleton w-10 h-10 rounded-full mr-3"></div>
-                                        <div className="skeleton w-3/4 h-4"></div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {/* Main content skeleton */}
-                <div className="col-span-4 md:col-span-3 h-full mr-3">
-                    <div className="skeleton h-12 w-full mb-6"></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="skeleton h-40 w-full"></div>
-                        <div className="skeleton h-40 w-full"></div>
-                    </div>
-                    <div className="skeleton h-60 w-full mt-6"></div>
-                </div>
-                <div className="">
-                </div>
-            </div>
-        </>
-    )
-}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

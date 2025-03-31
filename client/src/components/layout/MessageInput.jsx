@@ -24,9 +24,6 @@ export const MessageInput = ({chatId, members}) => {
     // Fixed TypingHandler to properly handle typing notifications
     const TypingHandler = useCallback((data) => {
         if(data.chatId !== chatId) return;
-        // Handle typing indication from other users
-        // This could update a state showing which users are typing
-        console.log(`User is typing in chat ${chatId}`);
     }, [chatId]);
 
     useEffect(() => {
@@ -162,7 +159,7 @@ export const MessageInput = ({chatId, members}) => {
     useClickOutside(emojiPickerRef, () => setShowEmojiPicker(false));
   
     return (
-      <footer className="p-4 bg-neutral-800/90 backdrop-blur-xl border-t border-neutral-700 z-10">
+      <footer className="p-4 bg-white dark:bg-neutral-800/90 backdrop-blur-xl border-t border-neutral-700 z-10">
         <form onSubmit={handleSubmit} className="flex items-center gap-4">
           <label className={`p-2 ${isUploading ? 'text-blue-500 animate-pulse' : 'text-neutral-400 hover:bg-neutral-700'} rounded-full transition-colors cursor-pointer`}>
             <input 
@@ -184,7 +181,7 @@ export const MessageInput = ({chatId, members}) => {
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}
               placeholder={isUploading ? "Uploading..." : "Type a message"}
-              className="w-full px-4 py-2 bg-neutral-700/50 text-white rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-neutral-400"
+              className="w-full px-4 py-2 bg-amber-50 dark:bg-neutral-700/50 text-white rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-neutral-400"
               disabled={isUploading}
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -205,8 +202,8 @@ export const MessageInput = ({chatId, members}) => {
                   <EmojiPicker
                     onEmojiClick={onEmojiClick}
                     theme="dark"
-                    width={320}
-                    height={400}
+                    width={280}
+                    height={350}
                   />
                 </div>
               )}

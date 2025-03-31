@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 const useChatStore = create(
     persist(
-        (set) => ({
+        (set, get) => ({
             // Simple object to track message counts by chat ID
             messageCounts: {},
             
@@ -65,9 +65,37 @@ const useChatStore = create(
                         typingUsers: updatedTypingUsers
                     };
                 }),
+
+            // Online Status Management
+            onlineUsers: {}, // { userId: { isOnline, lastActive } }
+            
+            // Update user online status
+            setUserOnlineStatus: (userId, isOnline, lastActive) => 
+                set((state) => ({
+                    onlineUsers: {
+                        ...state.onlineUsers,
+                        [userId]: { isOnline, lastActive: lastActive || new Date() }
+                    }
+                })),
+            
+            // Check if a user is online
+            isUserOnline: (userId) => {
+                const state = get();
+                return state.onlineUsers[userId]?.isOnline || false;
+            },
+            
+            // Get user's last active time
+            getUserLastActive: (userId) => {
+                const state = get();
+                return state.onlineUsers[userId]?.lastActive || null;
+            }
         }),
         {
-            name: 'chat-message-counts',
+            name: 'chat-store',
+            partialize: (state) => ({
+                messageCounts: state.messageCounts,
+                onlineUsers: state.onlineUsers
+            })
         }
     )
 );

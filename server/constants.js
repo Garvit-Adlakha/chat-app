@@ -14,3 +14,5 @@ export const NEW_CHAT="NEW_CHAT"
 
 export const TYPING="TYPING"
 export const STOP_TYPING="STOP_TYPING"
+
+export const USER_STATUS_CHANGE="USER_STATUS_CHANGE"

@@ -5,14 +5,23 @@ import userService from "../../service/userService";
 import toast from "react-hot-toast";
 const FriendSearch = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedQuery, setDebouncedQuery] = useState("");
+
+    useEffect(()=>{
+        const handler=setTimeout(()=>{
+            setDebouncedQuery(searchQuery)
+        },500)
+
+        return ()=> clearTimeout(handler)
+    },[searchQuery])
 
     const {data: users = [], isLoading} = useQuery({
-        queryKey: ["users", searchQuery],
-        queryFn: () => userService.UserSearch(searchQuery),
-        enabled: !!searchQuery,
+        queryKey: ["users", debouncedQuery],
+        queryFn: () => userService.UserSearch(debouncedQuery),
     });
     const queryClient = useQueryClient();
     const mutation=useMutation({
+
         mutationFn: userService.SendFriendRequest,
         onSuccess:()=>{
             toast.success("Friend request sent successfully")
@@ -45,7 +54,7 @@ const FriendSearch = ({ isOpen, onClose }) => {
     if (isLoading) {
         return (
             <div 
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+                className="fxixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999]"
                 onClick={(e) => {
                     if (e.target === e.currentTarget) onClose();
                 }}
@@ -60,22 +69,21 @@ const FriendSearch = ({ isOpen, onClose }) => {
 
     return (
         <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999]"
             onClick={(e) => {
                 if (e.target === e.currentTarget) onClose();
             }}
         >
-            <div className="bg-white dark:bg-neutral-800 w-full max-w-md rounded-xl shadow-xl transform transition-all">
-                <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">
-                            Add New Friend
-                        </h3>
+            <div className="bg-white dark:bg-neutral-800 w-full max-w-md mx-4 rounded-xl shadow-xl transform transition-all">
+                <div className="p-4 sm:p-6">
+                    <div className="p-2 sm:p-4">
                         <button
-                            className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-colors"
+                            className="w-full btn bg-black/50 hover:bg-black/60 text-white rounded-lg cursor-pointer px-3 py-1.5 sm:px-4 sm:py-2 flex items-center justify-center gap-1.5 sm:gap-2" 
                             onClick={onClose}
+                            aria-label="Close"
                         >
                             <IconX className="w-5 h-5 text-neutral-500" />
+                            <span className="inline text-sm font-medium truncate">Close</span>
                         </button>
                     </div>
 

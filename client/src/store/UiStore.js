@@ -7,8 +7,12 @@ const getInitialTheme = () => {
     // First check localStorage
     const storedTheme = localStorage.getItem('ui-store')
     if (storedTheme) {
-      const { state } = JSON.parse(storedTheme)
-      return state.theme
+      try {
+        const { state } = JSON.parse(storedTheme)
+        if (state?.theme) return state.theme
+      } catch (e) {
+        console.error('Error parsing stored theme:', e)
+      }
     }
     // Then check system preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -19,7 +23,15 @@ const getInitialTheme = () => {
 // Initialize theme on DOM
 const initializeTheme = (theme) => {
   if (typeof window !== 'undefined') {
-    document.documentElement.classList.toggle('dark', theme === 'dark')
+    const root = document.documentElement
+    root.classList.remove('light', 'dark')
+    root.classList.add(theme)
+    // Update meta theme-color
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+    const themeColor = theme === 'dark' ? '#171717' : '#ffffff'
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', themeColor)
+    }
   }
 }
 

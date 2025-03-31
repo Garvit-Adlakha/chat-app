@@ -12,10 +12,11 @@ export const UserAvatar = ({ onClick, isActive }) => {
         <button
             onClick={onClick}
             className={`
-                relative p-1 mb-6
+                relative p-2
                 rounded-full
                 transition-all duration-200
                 hover:scale-110
+
                 ${isActive ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-neutral-900' : ''}
             `}
             aria-label="Profile Settings"
@@ -27,7 +28,7 @@ export const UserAvatar = ({ onClick, isActive }) => {
             />
             <span 
                 className={`
-                    absolute bottom-0 right-0
+                    absolute bottom-1 right-1
                     w-3 h-3 rounded-full
                     border-2 border-white dark:border-neutral-900
                     ${user.isOnline ? 'bg-green-500' : 'bg-neutral-400'}

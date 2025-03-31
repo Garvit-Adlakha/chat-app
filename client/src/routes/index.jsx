@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react"
 import Protected from "../components/auth/Protected"
-import { AppLayoutLoader, LayoutLoader } from "../components/layout/Loaders"
+import { AppLayoutLoader, HomePageLoader,LoginPageLoader } from "../components/layout/Loaders"
 import { Route, Routes } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
@@ -29,29 +29,49 @@ const HomePage = lazy(() => import("../pages/HomePage"))
 
 
   return (
-    <Suspense fallback={<AppLayoutLoader />}>
-      <Routes>
-        {/* Auth routes */}
-        <Route element={<Protected user={!user} loading={loading} redirect="/" />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<Signup />} />
-        </Route>
+    <Routes>
+      {/* Public routes */}
+      <Route path="/" element={
+        <Suspense fallback={<HomePageLoader />}>
+          <HomePage />
+        </Suspense>
+      } />
 
-        {/* Protected routes */}
-        <Route element={<Protected user={!!user} loading={isLoading} />}>
-          <Route path="/chat">
-            <Route index element={<MainChat />} />
-            <Route path=":chatId" element={<MainChat />} />
-          </Route>
-        </Route>
+      {/* Auth routes */}
+      <Route element={<Protected user={!user} loading={loading} redirect="/" />}>
+        <Route path="/login" element={
+          <Suspense fallback={<LoginPageLoader />}>
+            <LoginPage />
+          </Suspense>
+        } />
+        <Route path="/signup" element={
+          <Suspense fallback={<LoginPageLoader/>}>
+            <Signup />
+          </Suspense>
+        } />
+      </Route>
 
-        {/* Public routes */}
-        <Route path="/" element={<HomePage />} />
+      {/* Protected routes */}
+      <Route element={<Protected user={!!user} />}>
+        <Route path="/chat" element={
+          <Suspense fallback={<AppLayoutLoader />}>
+            <MainChat />
+          </Suspense>
+        } />
+        <Route path="/chat/:chatId" element={
+          <Suspense fallback={<AppLayoutLoader />}>
+            <MainChat />
+          </Suspense>
+        } />
+      </Route>
 
-        {/* 404 route */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+      {/* 404 route */}
+      <Route path="*" element={
+        <Suspense fallback={<HomePageLoader />}>
+          <NotFound />
+        </Suspense>
+      } />
+    </Routes>
   );
 };
 

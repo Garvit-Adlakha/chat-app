@@ -13,7 +13,6 @@ const chatService = {
   UserGroupChats: async () => {
     try {
       const response = await axiosInstance.get('/chat/getGroup')
-      console.log(response.data)
       return response.data.groups
     } catch (error) {
       throw error;
@@ -50,7 +49,6 @@ const chatService = {
       
       // DEBUG: Log the form data entries
       for (let [key, value] of formData.entries()) {
-        console.log(`${key}: ${value instanceof File ? 'File: ' + value.name : value}`);
       }
       
       const response = await axiosInstance.post('/chat/new', formData, {
@@ -59,7 +57,6 @@ const chatService = {
         },
       });
       
-      console.log("response from create group:", response.data);
       return response.data.chat;
     } catch (error) {
       console.error("Group creation error details:", error);
@@ -98,7 +95,6 @@ const chatService = {
   getChatDetails: async (chatId) => {
     try {
       const response = await axiosInstance.get(`/chat/${chatId}?populate=true`)
-      console.log("response from get chat details'", response.data)
       return response.data.chat
     } catch (error) {
       throw error;
@@ -114,13 +110,7 @@ const chatService = {
         }
         
         // Log the content type of files for debugging
-        if (files.getAll('files').length > 0) {
-          console.log('Files to upload:', files.getAll('files').map(f => ({
-            name: f.name,
-            type: f.type,
-            size: f.size
-          })));
-        }
+   
         
         const response = await axiosInstance.post(`/chat/message`, files, {
           headers: {
@@ -135,11 +125,9 @@ const chatService = {
         
         if (Array.isArray(files)) {
           files.forEach(file => {
-            console.log('Adding file to FormData:', file.name, file.type);
             formData.append('files', file);
           });
         } else {
-          console.log('Adding single file to FormData:', files.name, files.type);
           formData.append('files', files);
         }
         
@@ -165,7 +153,6 @@ const chatService = {
         chatId, 
         members
       });
-      console.log("response from add members to group", response.data);
       return response.data.data;
     } catch (error) {
       throw error;
@@ -177,9 +164,7 @@ const chatService = {
             throw new Error('Chat ID is required for deletion');
         }
         
-        console.log(`Attempting to delete chat with ID: ${chatId}`);
         const response = await axiosInstance.delete(`/chat/${chatId}`);
-        console.log("Response from delete group:", response.data);
         return response.data;
     } catch (error) {
         console.error("Error in deleteGroup service:", error);
@@ -193,11 +178,30 @@ const chatService = {
         chatId, 
         members
       });
-      console.log("response from remove members to group", response.data);
       return response.data.data;
     } catch (error) {
       throw error;
     }
+  },
+  renameGroup: async ({chatId, name}) => {
+    try {
+      const response = await axiosInstance.put(`/chat/${chatId}`, {
+        name
+      });
+      return response.data.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  leaveGroup:async({chatId}) => {
+      try {
+          const response= await axiosInstance.delete(`/chat/leave/${chatId}`);
+          return response.data;
+      } catch (error) {
+          console.error("Error in leaveGroup service:", error);
+          console.error("Error response:", error.response?.data);
+          throw error;
+      }
   }
 }
 

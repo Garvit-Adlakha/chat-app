@@ -23,7 +23,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: process.env.CLIENT_URL || "http://localhost:3000",
+        origin: process.env.CLIENT_URL || "http://localhost:4173",
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
         allowedHeaders: ["Content-Type", "Authorization"]
@@ -63,21 +63,23 @@ if (process.env.NODE_ENV === 'development') {
 
 //cors config
 const corsOptions = {
-    origin: ["http://localhost:3000"], // Allow localhost:3000
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:4173",
+        process.env.CLIENT_URL
+    ].filter(Boolean), // Filter out undefined/null values
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
     allowedHeaders: ["Content-Type", "Authorization"]
 };
 
+// Move cors middleware before routes
 app.use(cors(corsOptions));
-console.log(`CORS is configured for origins: ${corsOptions.origin}`);
-
-
 
 //api routes
 import userRoutes from './routes/user.route.js';
 import chatRoutes from './routes/chat.route.js';
-import { TYPING } from './constants.js';
+import { TYPING, USER_STATUS_CHANGE } from './constants.js';
 app.use('/api/v1/user', userRoutes)
 app.use('/api/v1/chat', chatRoutes)
 
@@ -94,13 +96,42 @@ io.use((socket, next) => {
 
 //sockets routes
 io.engine.on("connection_error", (err) => {
-    console.log("Socket.IO connection error:", err.code, err.message);
+    if (process.env.NODE_ENV === 'development') {
+        console.log("Socket.IO connection error:", err.code, err.message);
+    }
 });
 
-io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
+io.on('connection', async(socket) => {
     const user = socket.user;
-    console.log('User:', user);
+
+    await User.findByIdAndUpdate(user._id, {
+        $set: {
+            isOnline: true,
+            lastActive: Date.now()
+        }
+    }, {
+        new: true,
+        runValidators: true
+    })
+
+   const userChats=await Chat.find({
+        members:user._id
+   }).select('members')
+
+   const friendIds = [...new Set(
+    userChats.flatMap(chat => 
+        chat.members
+        .filter(id => id.toString() !== user._id.toString())
+    )
+)];
+
+    const friendSockets=getSockets(friendIds)
+
+    io.to(friendSockets).emit(USER_STATUS_CHANGE,{
+        userId:user._id,
+        isOnline:true
+    })
+   
     userSocketIds.set(user._id.toString(), socket.id)
     socket.on(NEW_MESSAGE, async ({ chatId, members, message }) => {
         const messageForRealTime = {
@@ -135,12 +166,7 @@ io.on('connection', (socket) => {
     })
 
     socket.on(TYPING, ({ members, chatId }) => {
-        console.log('Typing event received:', members, chatId);
-
         const membersSocket = getSockets(members)
-        console.log('Members socket:', membersSocket);
-        
-        // Include user info in the typing event
         socket.to(membersSocket).emit(TYPING, {
             chatId,
             user: {
@@ -151,12 +177,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on(STOP_TYPING, ({ members, chatId }) => {
-        console.log('Stop typing event received:', members, chatId);
-
         const membersSocket = getSockets(members)
-        console.log('Members socket:', membersSocket);
-        
-        // Include user info in the stop typing event
         socket.to(membersSocket).emit(STOP_TYPING, {
             chatId,
             user: {
@@ -167,12 +188,29 @@ io.on('connection', (socket) => {
     });
 
     socket.on('error', (error) => {
-        console.error('Socket error:', error);
+        if (process.env.NODE_ENV === 'development') {
+            console.error('Socket error:', error);
+        }
     });
 
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', async(reason) => {
+        await User.findByIdAndUpdate(user._id, {
+            $set: {
+                isOnline: false,
+                lastActive: Date.now()
+            }
+        }, {
+            new: true,
+            runValidators: true
+        })
+
         userSocketIds.delete(user._id.toString())
-        console.log('Client disconnected:', socket.id, 'Reason:', reason);
+
+        io.to(friendSockets).emit(USER_STATUS_CHANGE, {
+            userId: user._id,
+            isOnline: false,
+            lastActive: new Date()
+        })
     });
 });
 
@@ -191,6 +229,8 @@ import { NEW_MESSAGE, NEW_MESSAGE_ALERT, STOP_TYPING } from './constants.js';
 import { getSockets } from './utils/sockets.js';
 import { Message } from './models/message.model.js';
 import { createGroupChats, createSingleChats } from './seeders/Chat.js';
+import { User } from './models/user.model.js';
+import { Chat } from './models/chat.model.js';
 
 app.use(errorHandler)
 //server

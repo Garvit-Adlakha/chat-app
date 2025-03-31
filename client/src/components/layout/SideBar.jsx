@@ -11,11 +11,10 @@ import ProfileSection from '../profile/ProfileSection';
 import DirectMessagesSection from '../chat/DirectMessagesSection';
 import FriendRequestsSection from '../chat/FriendRequestsSection';
 import { NavButton, SettingsDropdown, UserAvatar } from "./sidebar-components";
-import { mockGroups } from "../../mocks/data";
 import { useQuery } from "@tanstack/react-query";
 import userService from "../../service/userService";
 import FriendsSection from "../chat/FriendsSection";
-    
+import { MobileDock } from './sidebar-components/MobileDock';
 
 export const SideBar = () => {
     const [activeSection, setActiveSection] = useState('direct');
@@ -89,23 +88,22 @@ export const SideBar = () => {
     return (
         <Sidebar>
             <SidebarBody className="flex flex-col p-0 min-w-full h-full rounded-2xl">
-                {/* Navigation Sidebar */}
+                {/* Desktop Navigation Sidebar */}
                 <nav 
                     className="
+                        hidden md:flex flex-col items-center 
                         bg-neutral-200 dark:bg-neutral-900 
-                        flex flex-col items-center 
                         py-2 w-16 h-full flex-shrink-0 
                         shadow-md backdrop-blur-2xl rounded-2xl mr-2
+                        relative z-[999]
                     "
                     aria-label="Main navigation"
                 >
-                    {/* User Avatar */}
                     <UserAvatar 
                         onClick={() => setActiveSection('profile')}
                         isActive={activeSection === 'profile'}
                     />
 
-                    {/* Navigation Buttons */}
                     <div className="flex flex-col h-full justify-between">
                         <div className="flex flex-col items-center gap-5">
                             {navigationItems.map(item => (
@@ -117,8 +115,6 @@ export const SideBar = () => {
                                 />
                             ))}
                         </div>
-
-                        {/* Settings */}
                         <SettingsDropdown />
                     </div>
                 </nav>
@@ -128,13 +124,32 @@ export const SideBar = () => {
                     className="
                         flex flex-col flex-1 
                         bg-white dark:bg-neutral-800 
-                        h-full overflow-hidden rounded-2xl
+                        h-full pb-24 md:pb-0 overflow-hidden rounded-2xl
+                        relative z-10
                     "
                     role="main"
                     aria-label={`${activeSection} section`}
                 >
                     {renderContent()}
                 </main>
+
+                {/* Mobile Dock */}
+                <MobileDock>
+                    <UserAvatar 
+                        onClick={() => setActiveSection('profile')}
+                        isActive={activeSection === 'profile'}
+                        size="sm"
+                    />
+                    {navigationItems.map(item => (
+                        <NavButton
+                            key={item.id}
+                            {...item}
+                            badge={item.badge}
+                            size="sm"
+                            aria-label={item.label}
+                        />
+                    ))}
+                </MobileDock>
             </SidebarBody>
         </Sidebar>
     );

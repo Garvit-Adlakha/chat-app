@@ -76,7 +76,7 @@ const DirectMessagesSection = () => {
                                     className="w-10 h-10 mr-3" 
                                 />
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                                    <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200   ">
                                         {user.name}
                                     </span>
                                     {messageCounts[user._id] > 0 && (

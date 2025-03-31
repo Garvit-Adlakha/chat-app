@@ -8,29 +8,46 @@ import emitEvent from "../utils/Emit.js";
 import { NEW_FRIEND_REQUEST, REFETCH_CHATS } from "../constants.js";
 import client, { verifyGoogleToken } from "../utils/googleClient.js";
 import crypto from 'crypto';
+import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
 
 export const registerUser = catchAsync(async (req, res, next) => {
     const { name, username, email, password, bio } = req.body;
+    const file = req.file
+
+    if (!file) {
+        throw new AppError("Please upload Avatar", 400);
+    }
 
     // Basic validation
-    if (!name || !username || !email || !password) {
+    if (!name || !email || !password) {
         throw new AppError("All fields are required", 400);
     }
 
     // Check for existing user by email or username
     const existingUser = await User.findOne({
-        $or: [{ email }, { username }]
+        $or: [{ email }]
     });
 
     if (existingUser) {
         throw new AppError("User already exists with this email or username", 400);
     }
 
+    const result = await uploadMedia(file?.path);
+    console.log("result", result)
+
+    const avatar = {
+        public_id: result.public_id,
+        url: result.secure_url
+    }
+    console.log("avatar", avatar)
+
+
     // Create new user
     const newUser = await User.create({
         name,
         email,
         username,
+        avatar,
         bio,
         password
     });
@@ -84,7 +101,47 @@ export const getProfile = catchAsync(async (req, res, next) => {
         data: { user }
     });
 });
+export const updateUser = catchAsync(async (req, res, next) => {
+    const { name,  bio } = req.body;
+    const file = req.file;
+    const userId = req.id;
+    // Check if email or username is already taken by another user`
 
+    // Get current user
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new AppError("User not found", 404);
+    }
+
+    // Update object
+    const updateData = { name, bio };
+
+    // Handle avatar update if file is provided
+    if (file) {
+        // Delete old image if exists
+        if (user.avatar?.public_id) {
+            await deleteMediaFromCloudinary(user.avatar.public_id);
+        }
+        
+        const result = await uploadMedia(file.path);
+        updateData.avatar = {
+            public_id: result.public_id,
+            url: result.secure_url
+        };
+    }
+
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(
+        userId, 
+        updateData, 
+        { new: true }
+    );
+
+    await updatedUser.updateLastActive();
+    
+    // Generate token and send response
+    generateToken(res, updatedUser, "Profile updated successfully", 200);
+});
 
 export const signout = catchAsync(async (req, res, next) => {
     res
@@ -104,35 +161,35 @@ export const signout = catchAsync(async (req, res, next) => {
 
 export const searchUser = catchAsync(async (req, res) => {
     const { name = "" } = req.query;
-  
+
     // Finding All my chats
     const myChats = await Chat.find({ groupChat: false, members: req.id });
-  
+
     //  extracting All Users from my chats means friends or people I have chatted with
     const allUsersFromMyChats = myChats.flatMap((chat) => chat.members);
-  
+
     // Finding all users except me and my friends
     const allUsersExceptMeAndFriends = await User.find({
-      _id: { $nin: allUsersFromMyChats },
-      name: { $regex: name, $options: "i" },
+        _id: { $nin: allUsersFromMyChats },
+        name: { $regex: name, $options: "i" },
     });
-  
+
     // Modifying the response
     const users = allUsersExceptMeAndFriends.map(({ _id, name, avatar }) => ({
-      _id,
-      name,
-      avatar: avatar.url,
+        _id,
+        name,
+        avatar: avatar.url,
     }));
-  
+
     return res.status(200).json({
-      success: true,
-      users,
+        success: true,
+        users,
     });
-  });
-  
+});
+
 export const sendFriendRequest = catchAsync(async (req, res, next) => {
     const { receiverId } = req.body;
-    if(receiverId.toString()===req.id.toString()){
+    if (receiverId.toString() === req.id.toString()) {
         throw new AppError("You cannot send request to yourself", 400)
     }
     console.log(receiverId)
@@ -154,7 +211,7 @@ export const sendFriendRequest = catchAsync(async (req, res, next) => {
         .json({
             status: "success",
             message: "Request sent",
-            data:{
+            data: {
                 request
             }
         })
@@ -162,32 +219,32 @@ export const sendFriendRequest = catchAsync(async (req, res, next) => {
 
 export const acceptFriendRequest = catchAsync(async (req, res) => {
     const { requestId, accept } = req.body;
-    if(!requestId){
+    if (!requestId) {
         throw new AppError("Request id is required", 400)
     }
-    if(accept===undefined){
+    if (accept === undefined) {
         throw new AppError("Accept field is required", 400)
     }
-  if(typeof accept !== "boolean"){
-      throw new AppError("Accept field must be a boolean", 400)
-  }
+    if (typeof accept !== "boolean") {
+        throw new AppError("Accept field must be a boolean", 400)
+    }
     const request = await Request.findById(requestId)
         .populate("sender", "name")
-        .populate("receiver","name")
+        .populate("receiver", "name")
     if (!request) {
         throw new AppError("Request not found", 404)
     }
-    if(request.receiver._id.toString() !== req.id.toString()){
+    if (request.receiver._id.toString() !== req.id.toString()) {
         throw new AppError("You are not authorized to accept this request", 403)
     }
-    if(!accept){
+    if (!accept) {
         await request.deleteOne();
         return res
-        .status(200)
-        .json({
-            status: "success",
-            message: "Request declined"
-        })
+            .status(200)
+            .json({
+                status: "success",
+                message: "Request declined"
+            })
     }
     const members = [request.sender._id, request.receiver._id]
     await Promise.all([Chat.create({
@@ -195,35 +252,35 @@ export const acceptFriendRequest = catchAsync(async (req, res) => {
         name: `${request.sender.name}-${request.receiver.name}`
     }),
     request.deleteOne()
-])
-emitEvent(req,REFETCH_CHATS,members,"new chat")
-return res
-.status(200)
-.json({
-    status: "success",
-    message: "Request accepted",
-    senderId:request.sender._id
-})
+    ])
+    emitEvent(req, REFETCH_CHATS, members, "new chat")
+    return res
+        .status(200)
+        .json({
+            status: "success",
+            message: "Request accepted",
+            senderId: request.sender._id
+        })
 })
 
 export const getAllNotifications = catchAsync(async (req, res, next) => {
-    const requests=await Request.find({receiver:req.id}).populate("sender","name avatar")
-    const allRequests=requests.map(({_id,sender})=>({    
+    const requests = await Request.find({ receiver: req.id }).populate("sender", "name avatar")
+    const allRequests = requests.map(({ _id, sender }) => ({
         _id,
-        sender:{
-            _id:sender._id,
-            name:sender.name,
-            avatar:sender.avatar.url
+        sender: {
+            _id: sender._id,
+            name: sender.name,
+            avatar: sender.avatar.url
         }
     }))
     return res
-    .status(200)
-    .json({
-        status:"success",
-        data:{
-            requests:allRequests
-        }
-    })
+        .status(200)
+        .json({
+            status: "success",
+            data: {
+                requests: allRequests
+            }
+        })
 })
 
 //todo :: getmyfriends and add validations
@@ -244,7 +301,7 @@ export const getMyFriends = catchAsync(async (req, res, next) => {
     }
 
     // Extract friends from chats
-    const friends = chats.map(({members}) => {
+    const friends = chats.map(({ members }) => {
         const friend = members.find(member => member._id.toString() !== req.id.toString());
         console.log(friend)
         return {
@@ -262,8 +319,9 @@ export const getMyFriends = catchAsync(async (req, res, next) => {
         }
 
         const availableFriends = friends.filter(
-            (friend) =>{ 
-               return !chat.members.includes(friend._id)}
+            (friend) => {
+                return !chat.members.includes(friend._id)
+            }
         );
 
         return res.status(200).json({
@@ -279,53 +337,53 @@ export const getMyFriends = catchAsync(async (req, res, next) => {
 });
 
 export const googleAuth = catchAsync(async (req, res, next) => {
-  const { token } = req.body; // ID token from Google
+    const { token } = req.body; // ID token from Google
 
-  if (!token) {
-    throw new AppError("Google token is required", 400);
-  }
-
-  try {
-    // Use the enhanced verification function instead of direct client verification
-    const payload = await verifyGoogleToken(token);
-    
-    // Check if user exists with this Google ID or email
-    let user = await User.findOne({ 
-      $or: [
-        { googleId: payload.sub },
-        { email: payload.email }
-      ] 
-    });
-
-    if (!user) {
-      // Create a new user
-      user = await User.create({
-        name: payload.name,
-        email: payload.email,
-        username: payload.email.split('@')[0] + Math.floor(Math.random() * 10000), // Generate a username
-        googleId: payload.sub,
-        avatar: {
-          url: payload.picture
-        },
-        password: crypto.randomBytes(16).toString('hex'), // Random password for Google users
-        isEmailVerified: payload.email_verified
-      });
-    } else if (!user.googleId) {
-      // If user exists with same email but not linked to Google
-      user.googleId = payload.sub;
-      if (payload.picture && (!user.avatar || !user.avatar.url)) {
-        user.avatar = { url: payload.picture };
-      }
-      await user.save();
+    if (!token) {
+        throw new AppError("Google token is required", 400);
     }
 
-    // Update last active status
-    await user.updateLastActive();
+    try {
+        // Use the enhanced verification function instead of direct client verification
+        const payload = await verifyGoogleToken(token);
 
-    // Generate token and send response
-    generateToken(res, user, user.isNewUser ? "Account created successfully" : "Welcome back", 200);
-  } catch (error) {
-    // Our verifyGoogleToken already wraps and enhances the error messages
-    throw new AppError(error.message, 401);
-  }
+        // Check if user exists with this Google ID or email
+        let user = await User.findOne({
+            $or: [
+                { googleId: payload.sub },
+                { email: payload.email }
+            ]
+        });
+
+        if (!user) {
+            // Create a new user
+            user = await User.create({
+                name: payload.name,
+                email: payload.email,
+                username: payload.email.split('@')[0] + Math.floor(Math.random() * 10000), // Generate a username
+                googleId: payload.sub,
+                avatar: {
+                    url: payload.picture
+                },
+                password: crypto.randomBytes(16).toString('hex'), // Random password for Google users
+                isEmailVerified: payload.email_verified
+            });
+        } else if (!user.googleId) {
+            // If user exists with same email but not linked to Google
+            user.googleId = payload.sub;
+            if (payload.picture && (!user.avatar || !user.avatar.url)) {
+                user.avatar = { url: payload.picture };
+            }
+            await user.save();
+        }
+
+        // Update last active status
+        await user.updateLastActive();
+
+        // Generate token and send response
+        generateToken(res, user, user.isNewUser ? "Account created successfully" : "Welcome back", 200);
+    } catch (error) {
+        // Our verifyGoogleToken already wraps and enhances the error messages
+        throw new AppError(error.message, 401);
+    }
 });

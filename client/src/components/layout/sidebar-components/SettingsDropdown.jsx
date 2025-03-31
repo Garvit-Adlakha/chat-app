@@ -34,7 +34,7 @@ export const SettingsDropdown = () => {
     };
 
     return (
-        <div className="relative">
+        <div className="relative z-[999]">
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
@@ -51,7 +51,7 @@ export const SettingsDropdown = () => {
             {isOpen && (
                 <>
                     <div
-                        className="fixed inset-0 z-10"
+                        className="fixed inset-0 z-[998]"
                         onClick={() => setIsOpen(false)}
                     />
                     <div className={`
@@ -59,10 +59,10 @@ export const SettingsDropdown = () => {
                         w-48 py-2
                         bg-white dark:bg-neutral-800
                         rounded-lg shadow-lg
-                        z-20
+                        z-[999]
                         animate-fadeIn
                     `}>
-                        <button
+                        {/* <button
                             onClick={handleThemeToggle}
                             className={`
                                 w-full px-4 py-2
@@ -82,7 +82,7 @@ export const SettingsDropdown = () => {
                                     <span>Dark Mode</span>
                                 </>
                             )}
-                        </button>
+                        </button> */}
 
                         <button
                             onClick={handleLogout}

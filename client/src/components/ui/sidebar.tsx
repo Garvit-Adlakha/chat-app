@@ -85,7 +85,7 @@ export const DesktopSidebar = ({
   const { open, setOpen, animate } = useSidebar();
   return (
     <motion.div
-      className={`h-full px-2 py-1 hidden md:flex md:flex-row  flex-shrink-0 ${className}`}
+      className={`h-full px-2 py-1 hidden md:flex md:flex-row flex-shrink-0 scrollbar-none ${className}`}
       animate={{
         width: animate ? (open ? "300px" : "60px") : "300px",
       }}
@@ -106,7 +106,7 @@ export const MobileSidebar = ({
   const { open, setOpen } = useSidebar();
   return (
     <div
-      className="h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full"
+      className="h-10 md:px-4 py-4 flex flex-row md:hidden items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full "
       {...props}
     >
       <div className="flex justify-end z-20 w-full">
@@ -125,10 +125,10 @@ export const MobileSidebar = ({
               duration: 0.3,
               ease: "easeInOut",
             }}
-            className={`fixed h-full w-full inset-0 bg-white dark:bg-neutral-900 p-10 z-[100] flex flex-col justify-between ${className}`}
+            className={`fixed h-full w-full inset-0 p-10 z-[40] flex flex-col justify-between scrollbar-none overflow-auto backdrop-blur-2xl shadow-2xl ${className}`}
           >
             <div
-              className="absolute right-10 top-10 z-50 text-neutral-800 dark:text-neutral-200"
+              className="absolute right-0 top-2 z-50 text-neutral-800 dark:text-neutral-200 cursor-pointer rounded-2xl bg-neutral-100 dark:bg-neutral-800 p-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition duration-150"
               onClick={() => setOpen(!open)}
             >
               <IconX />

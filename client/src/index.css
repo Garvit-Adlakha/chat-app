@@ -1,11 +1,36 @@
 @import "tailwindcss";
 @plugin "daisyui";
-/* body{
-    @apply bg-gradient-to-r from-[#0f0c29] via-[#302b63] to-[#24243e] h-screen
-} */
+
 @layer base {
   :root {
-    color-scheme: light dark;
+    color-scheme: light;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
   }
+
+  :root[class~="dark"] {
+    color-scheme: dark;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+  }
+
 }
 
+.sidebar {
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+/* Hide scrollbar for all screens */
+.scrollbar-none {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}

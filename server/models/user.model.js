@@ -9,7 +9,6 @@ const userSchema = new mongoose.Schema({
     },
     username: {
         type: String,
-        required: true,
         unique: true
     },
     bio: {
@@ -46,6 +45,10 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
         match: [/.+\@.+\..+/, 'Please fill a valid email address']
+    },
+    isOnline:{
+        type: Boolean,
+        default: false
     },
     lastActive: {
         type: Date,

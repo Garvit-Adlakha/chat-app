@@ -9,6 +9,8 @@ import { useClickOutside } from '../../hooks/UseClickOutside';
 import { useQuery } from '@tanstack/react-query';
 import chatService from '../../service/chatService';
 import userService from '../../service/userService';
+import useChatStore from '../../store/chatStore';
+import { formatLastActive } from '../../features/feature';
 
 export const ChatHeader = ({ chatId }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -21,10 +23,12 @@ export const ChatHeader = ({ chatId }) => {
         enabled: !!chatId
     });
 
-    const {data:user} = useQuery({
-        queryKey:['user'],
+    const { data: user } = useQuery({
+        queryKey: ['user'],
         queryFn: userService.currentUser
     });
+
+    const { isUserOnline, getUserLastActive } = useChatStore();
 
     useClickOutside(ChatProfileRef, () => setIsProfileOpen(false));
 
@@ -48,23 +52,60 @@ export const ChatHeader = ({ chatId }) => {
     if (!chatDetails) return null;
 
     // Get the other member's info for direct chats
-    const otherMember = !chatDetails.isGroupChat ? 
-        chatDetails.members.find(member => member._id !== user?._id) : 
+    const otherMember = !chatDetails.isGroupChat ?
+        chatDetails.members.find(member => member._id !== user?._id) :
         null;
+
+    // For direct chats: check if the other user is online
+    const isOtherUserOnline = !chatDetails?.isGroupChat && otherMember
+        ? isUserOnline(otherMember._id)
+        : false;
+
+    // Get last active time for direct chats
+    const lastActive = !chatDetails?.isGroupChat && otherMember
+        ? getUserLastActive(otherMember._id)
+        : null;
+
+    // Format last active time - helper function
+    const formatLastActive = (date) => {
+        if (!date) return '';
+
+        const now = new Date();
+        const lastActiveDate = new Date(date);
+        const diffMs = now - lastActiveDate;
+
+        // Less than a minute
+        if (diffMs < 60000) return 'Just now';
+
+        // Less than an hour
+        if (diffMs < 3600000) {
+            const mins = Math.floor(diffMs / 60000);
+            return `${mins} min${mins > 1 ? 's' : ''} ago`;
+        }
+
+        // Less than a day
+        if (diffMs < 86400000) {
+            const hours = Math.floor(diffMs / 3600000);
+            return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        }
+
+        // Format date
+        return lastActiveDate.toLocaleDateString();
+    };
 
     return (
         <>
-            <header className="p-2 mx-12 bg-neutral-800/80 backdrop-blur-xl z-10">
+            <header className="p-2 mx-12 bg-neutral-200 dark:bg-neutral-800/80 backdrop-blur-xl z-10">
                 <div className="flex justify-between items-center">
-                    <div 
+                    <div
                         className="flex items-center space-x-4 cursor-pointer"
                         onClick={() => setIsProfileOpen(true)}
                     >
-                        <div className="avatar">
+                        <div className="avatar relative">
                             {chatDetails.isGroupChat ? (
                                 <div className="tooltip" data-tip={chatDetails.members.slice(0, 3).map(m => m.name).join(', ')}>
                                     <div className="w-12 rounded-full">
-                                        <img 
+                                        <img
                                             src={chatDetails.groupIcon?.url}
                                             alt={chatDetails.name}
                                             className="object-cover"
@@ -72,25 +113,33 @@ export const ChatHeader = ({ chatId }) => {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="w-12 rounded-full">
-                                    <img 
+                                <div className="w-12 rounded-full relative ">
+                                    <img
                                         src={otherMember?.avatar}
                                         alt={otherMember?.name}
                                         className="object-cover"
                                     />
+                                    {isOtherUserOnline && (
+                                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full ring-2 ring-neutral-800" />
+                                    )}
                                 </div>
                             )}
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-white">
+                            <h3 className="text-lg font-semibold text-zinc-800 dark:text-neutral-200">
                                 {chatDetails.isGroupChat ? chatDetails.name : otherMember?.name}
                             </h3>
                             <p className="text-xs text-neutral-400">
-                                {chatDetails.isGroupChat && `${chatDetails.members?.length} members`}
+                                {chatDetails.isGroupChat ?
+                                    `${chatDetails.members?.length} members` :
+                                    isOtherUserOnline ?
+                                        'Online' :
+                                        lastActive ? `Last seen ${formatLastActive(lastActive)}` : ''
+                                }
                             </p>
                         </div>
                     </div>
-                    <ChatActions />
+                    {/* <ChatActions /> */}
                 </div>
             </header>
 

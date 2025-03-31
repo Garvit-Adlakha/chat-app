@@ -9,6 +9,8 @@ import { NEW_FRIEND_REQUEST, REFETCH_CHATS } from "../constants.js";
 import client, { verifyGoogleToken } from "../utils/googleClient.js";
 import crypto from 'crypto';
 import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
+import e from "express";
+import path from "path";
 
 export const registerUser = catchAsync(async (req, res, next) => {
     const { name, username, email, password, bio } = req.body;
@@ -148,9 +150,10 @@ export const signout = catchAsync(async (req, res, next) => {
         .status(200)
         .cookie("token", "", {
             httpOnly: true,
-            sameSite: "strict",
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 0
+            expires: new Date(0), // Set cookie to expire immediately
+            path: "/"
         })
         .json({
             status: "success",

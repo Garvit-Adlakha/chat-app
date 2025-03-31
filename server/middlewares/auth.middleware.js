@@ -36,17 +36,33 @@ export const isAuthenticated = catchAsync(async (req, res, next) => {
 
 export const socketAuthenticator = async (err, socket, next) => {
   if (err) {
+    console.error("Cookie parsing error:", err);
     return next(new Error("Error parsing cookies"));
   }
   
   try {
-    const authToken = socket.request.cookies.token;
+    let token = null;
     
-    if (!authToken) {
+    // Try to get token from cookies
+    if (socket.request.cookies && socket.request.cookies.token) {
+      token = socket.request.cookies.token;
+    }
+    // Fallback to auth header
+    else if (socket.handshake.auth && socket.handshake.auth.token) {
+      token = socket.handshake.auth.token;
+    }
+    
+    if (!token) {
+      console.error("No token found in socket request");
       return next(new Error("Authentication required"));
     }
     
-    const decodedData = jwt.verify(authToken, process.env.JWT_SECRET);
+    const decodedData = jwt.verify(token, process.env.JWT_SECRET);
+    
+    if (!decodedData.userId) {
+      return next(new Error("Invalid authentication token"));
+    }
+    
     const user = await User.findById(decodedData.userId);
     
     if (!user) {

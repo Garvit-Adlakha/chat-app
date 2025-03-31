@@ -63,17 +63,26 @@ if (process.env.NODE_ENV === 'development') {
 
 //cors config
 const corsOptions = {
-    origin: [
-        "http://localhost:3000",
-        "http://localhost:4173",
-        process.env.CLIENT_URL
-    ].filter(Boolean), // Filter out undefined/null values
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "http://localhost:4173", 
+      process.env.CLIENT_URL // Make sure this is correctly set in your .env
+    ].filter(Boolean);
+    
+    // For development/debugging, you can allow all origins
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.error("Blocked origin:", origin);
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 };
 
-// Move cors middleware before routes
 app.use(cors(corsOptions));
 
 //api routes

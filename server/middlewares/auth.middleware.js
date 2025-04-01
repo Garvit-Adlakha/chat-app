@@ -51,6 +51,9 @@ export const socketAuthenticator = async (err, socket, next) => {
     else if (socket.handshake.auth && socket.handshake.auth.token) {
       token = socket.handshake.auth.token;
     }
+    else if (socket.handshake.headers.authorization) {
+      token = socket.handshake.headers.authorization.split(' ')[1];
+    }
     
     if (!token) {
       console.error("No token found in socket request");

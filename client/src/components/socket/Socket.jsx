@@ -3,7 +3,7 @@ import { create } from 'zustand';
 
 const createSocket = () => io(import.meta.env.VITE_API_URL, {
     autoConnect: false,
-    transports: ['websocket'],
+    transports: ['websocket','polling'],
     withCredentials: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,

@@ -29,7 +29,12 @@ const io = new Server(server, {
         allowedHeaders: ["Content-Type", "Authorization"]
     },
     transports: ['websocket', 'polling'],
-    secure: process.env.NODE_ENV === 'production',
+    cookie:{
+        name:'token',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    },
 });
 
 //rateLimier
@@ -80,7 +85,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization","Accept"],
 };
 
 app.use(cors(corsOptions));

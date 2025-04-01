@@ -5,10 +5,11 @@ import useSocketStore from "../socket/Socket";
 import { useCallback, useEffect, useRef } from "react";
 import { NEW_FRIEND_REQUEST, NEW_FRIEND_REQUEST_ACCEPTED, NEW_FRIEND_REQUEST_REJECTED, NEW_MESSAGE_ALERT, TYPING, STOP_TYPING, USER_STATUS_CHANGE } from "../../constants/event";
 import useChatStore from "../../store/chatStore";
+import SocketReconnector from '../socket/SocketReconnector';
 
 const AppLayout = () => (WrappedComponent) => {
     const WithLayout = (props) => {
-        const { socket, connect, disconnect } = useSocketStore();
+        const { socket, connect, disconnect, isConnected } = useSocketStore();
         const { updateMessageCount, messageCounts, setUserTyping, removeUserTyping, setUserOnlineStatus } = useChatStore();
         const connectedRef = useRef(false);
 
@@ -90,8 +91,29 @@ const AppLayout = () => (WrappedComponent) => {
             };
         }, [socket, setUserOnlineStatus]);
 
+        // Add heartbeat to keep socket connection alive
+        useEffect(() => {
+            if (!socket || !isConnected) return;
+            
+            const heartbeatInterval = setInterval(() => {
+                if (socket && isConnected) {
+                    socket.emit('heartbeat', { timestamp: Date.now() });
+                }
+            }, 30000); // Send heartbeat every 30 seconds
+            
+            // Set up acknowledgment listener
+            socket.on('heartbeat_ack', (data) => {
+            });
+            
+            return () => {
+                clearInterval(heartbeatInterval);
+                socket.off('heartbeat_ack');
+            };
+        }, [socket, isConnected]);
+
         return (
             <>
+                <SocketReconnector />
                 <Title />
                 <div className="flex flex-col md:grid md:grid-cols-5 lg:grid-cols-4 max-h-[calc(100vh-10rem)] md:max-h-[calc(100vh-4rem)] mt-2 sm:mt-4 h-full px-2 sm:px-4">
                     <div className=" md:inline-block md:col-span-2 lg:col-span-1 h-full z-20">

@@ -1,26 +1,25 @@
 import io from 'socket.io-client';
 import { create } from 'zustand';
 
-// Get token from cookies, localStorage or both
-// Dynamically fetch token before each connection attempt
+// Get token from cookies
 const getAuthToken = () => {
-    const cookies = document.cookie.split('; ');
-    const tokenCookie = cookies.find(c => c.startsWith('token='));
-    return tokenCookie ? tokenCookie.split('=')[1] : null;
+  const cookies = document.cookie.split('; ');
+  const tokenCookie = cookies.find(c => c.startsWith('token='));
+  return tokenCookie ? tokenCookie.split('=')[1] : null;
 };
 
-// Make sure we're using the correct server URL and port
-const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-const createSocket = () => io(serverUrl, {
-  autoConnect: false, 
+// Create socket instance with better reconnection settings
+const createSocket = () => io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+  autoConnect: false,
   transports: ['websocket', 'polling'],
   withCredentials: true,
-  reconnectionAttempts: 5,
+  reconnection: true,
+  reconnectionAttempts: 10,
   reconnectionDelay: 1000,
-  timeout: 10000, // Increase timeout for slower connections
+  reconnectionDelayMax: 5000,
+  timeout: 20000,
   auth: (cb) => {
-    cb({ token: getAuthToken() }); // Get token dynamically at connection time
+    cb({ token: getAuthToken() });
   }
 });
 
@@ -32,25 +31,35 @@ const useSocketStore = create((set, get) => {
     isConnected: false,
     lastMessage: null,
     connectionError: null,
+    reconnectAttempts: 0,
 
     connect: () => {
       if (!get().isConnected) {
-        // Clear previous listeners to avoid duplicates
+        // Clear previous listeners
         socket.off('connect');
         socket.off('disconnect');
         socket.off('connect_error');
+        socket.off('reconnect_attempt');
+        socket.off('reconnect');
+        socket.off('reconnect_error');
         
         socket.on('connect', () => {
-          console.log('Socket connected!');
+          console.log('Socket connected!', socket.id);
           set({ 
             isConnected: true,
-            connectionError: null
+            connectionError: null,
+            reconnectAttempts: 0
           });
         });
         
         socket.on('disconnect', (reason) => {
           console.log('Socket disconnected:', reason);
           set({ isConnected: false });
+          
+          // If the server closed the connection, attempt to reconnect automatically
+          if (reason === 'io server disconnect') {
+            socket.connect();
+          }
         });
         
         socket.on('connect_error', (error) => {
@@ -61,7 +70,25 @@ const useSocketStore = create((set, get) => {
           });
         });
         
-        // Now attempt to connect
+        socket.on('reconnect_attempt', (attemptNumber) => {
+          console.log(`Socket reconnection attempt #${attemptNumber}`);
+          set({ reconnectAttempts: attemptNumber });
+        });
+        
+        socket.on('reconnect', (attemptNumber) => {
+          console.log(`Socket reconnected after ${attemptNumber} attempts`);
+          set({ 
+            isConnected: true,
+            connectionError: null,
+            reconnectAttempts: 0
+          });
+        });
+        
+        socket.on('reconnect_error', (error) => {
+          console.error('Socket reconnection error:', error.message);
+        });
+        
+        // Attempt to connect
         socket.connect();
       }
     },
@@ -70,10 +97,14 @@ const useSocketStore = create((set, get) => {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('connect_error');
+      socket.off('reconnect_attempt');
+      socket.off('reconnect');
+      socket.off('reconnect_error');
       socket.disconnect();
       set({ 
         isConnected: false,
-        connectionError: null
+        connectionError: null,
+        reconnectAttempts: 0
       });
     },
     

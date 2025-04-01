@@ -21,37 +21,39 @@ await connectDB();
 const Port = process.env.PORT || 5000;
 const app = express();
 const server = createServer(app);
+
+// Update the Socket.IO server configuration
 const io = new Server(server, {
-    cors: {
-        // Allow both specific origins and handle null origin (for file:// protocol)
-        origin: function(origin, callback) {
-            const allowedOrigins = [
-                "http://localhost:3000",
-                "http://localhost:4173",
-                process.env.CLIENT_URL
-            ].filter(Boolean);
-            
-            // Allow requests with no origin (like mobile apps or curl requests)
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                console.log("Blocked origin:", origin);
-                callback(null, false);
-            }
-        },
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-        allowedHeaders: ["Content-Type", "Authorization", "Accept"]
+  cors: {
+    origin: function(origin, callback) {
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "http://localhost:4173",
+        process.env.CLIENT_URL
+      ].filter(Boolean);
+      
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log("Blocked origin:", origin);
+        callback(null, false);
+      }
     },
-    transports: ['websocket', 'polling'],
-    pingTimeout: 60000, // Increase ping timeout to 60 seconds
-    pingInterval: 25000, // Ping every 25 seconds
-    cookie: {
-        name: 'token',
-        httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        secure: process.env.NODE_ENV === 'production',
-    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"]
+  },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,     // 60 seconds
+  pingInterval: 25000,    // 25 seconds
+  connectTimeout: 30000,  // 30 seconds
+  allowEIO3: true,        // Allow Engine.IO 3 compatibility
+  cookie: {
+    name: 'token',
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  },
 });
 
 //rateLimier
@@ -135,20 +137,27 @@ app.use('/api/v1/chat', chatRoutes)
 
 export const userSocketIds = new Map();
 
-// Fix the Socket.IO middleware setup
+// Improve the socket authentication middleware
 io.use((socket, next) => {
-    cookieParser()(socket.request, socket.request.res || {},
-        (err) => socketAuthenticator(err, socket, next)
-    );
+  cookieParser()(socket.request, socket.request.res || {}, (err) => {
+    if (err) {
+      console.error("Cookie parsing error:", err);
+      return next(new Error("Authentication error"));
+    }
+    
+    socketAuthenticator(err, socket, next);
+  });
 });
 
 //sockets routes
+// Add more detailed error logging for Socket.IO
 io.engine.on("connection_error", (err) => {
-    console.error("Socket.IO connection error:", {
-        code: err.code,
-        message: err.message,
-        context: err.context || 'No context available'
-    });
+  console.error("Socket.IO connection error:", {
+    code: err.code,
+    message: err.message,
+    context: err.context || 'No context available',
+    transport: err.transport || 'No transport info'
+  });
 });
 
 io.on('connection', async(socket) => {
@@ -235,6 +244,16 @@ io.on('connection', async(socket) => {
                 name: user.name
             }
         });
+    });
+
+    // Add heartbeat handler
+    socket.on('heartbeat', (data) => {
+      // Just acknowledge the heartbeat
+      socket.emit('heartbeat_ack', { 
+        received: true, 
+        serverTime: Date.now(),
+        clientTime: data.timestamp
+      });
     });
 
     socket.on('error', (error) => {

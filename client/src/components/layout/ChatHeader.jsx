@@ -30,7 +30,6 @@ export const ChatHeader = ({ chatId }) => {
 
     const { isUserOnline, getUserLastActive } = useChatStore();
 
-    useClickOutside(ChatProfileRef, () => setIsProfileOpen(false));
 
     // Loading and null states remain unchanged
     if (isLoading) {

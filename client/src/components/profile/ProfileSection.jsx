@@ -166,6 +166,7 @@ const ProfileSection = ({ userId = null }) => {
                                 className={`w-28 h-28 ring-4 ring-white dark:ring-neutral-700 shadow-lg ${
                                     isCurrentUser ? 'cursor-pointer transition-all duration-300 group-hover:scale-105' : ''
                                 }`}
+                                user={profileUser} // Pass the full user object to handle Google verification
                             />
                             {isEditing && isCurrentUser && (
                                 <label className="absolute inset-0 cursor-pointer bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
@@ -176,6 +177,18 @@ const ProfileSection = ({ userId = null }) => {
                                         onChange={handleAvatarChange}
                                     />
                                 </label>
+                            )}
+                            
+                            {/* Display a badge for Google-verified users */}
+                            {profileUser?.googleId && profileUser?.isEmailVerified && (
+                                <div className="absolute -bottom-1 -right-1 bg-white dark:bg-neutral-800 rounded-full p-1 shadow-md">
+                                    <img 
+                                        src="/google-g-logo.svg" 
+                                        alt="Google Verified" 
+                                        className="w-4 h-4"
+                                        title="Google Verified Account" 
+                                    />
+                                </div>
                             )}
                         </div>
                     </div>

@@ -294,9 +294,20 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                                             <Avatar
                                                 src={otherMember?.avatar}
                                                 alt={otherMember?.name}
+                                                user={otherMember} // Pass the user object to handle Google verification
                                             />
                                             {isOtherUserOnline && (
                                                 <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full ring-2 ring-neutral-800" />
+                                            )}
+                                            {otherMember?.googleId && otherMember?.isEmailVerified && (
+                                                <div className="absolute top-0 right-0 bg-white dark:bg-neutral-800 rounded-full p-1 shadow-md">
+                                                    <img 
+                                                        src="/google-g-logo.svg" 
+                                                        alt="Google Verified" 
+                                                        className="w-4 h-4"
+                                                        title="Google Verified Account" 
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     </div>

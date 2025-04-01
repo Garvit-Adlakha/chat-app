@@ -34,3 +34,5 @@
 .scrollbar-none::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
+
+/* Custom container for the Google Sign-In button */

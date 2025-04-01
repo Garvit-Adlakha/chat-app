@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import userService from '../../../service/userService';
+import Avatar from '../../shared/Avatar';
 
 export const UserAvatar = ({ onClick, isActive }) => {
     const{data: user} = useQuery({
@@ -21,9 +22,9 @@ export const UserAvatar = ({ onClick, isActive }) => {
             `}
             aria-label="Profile Settings"
         >
-            <img
-                src={user.avatar.url}
-                alt={user.name}
+            <Avatar
+                user={user}
+                alt={user?.name || 'User'}
                 className="w-10 h-10 rounded-full"
             />
             <span 
@@ -31,7 +32,7 @@ export const UserAvatar = ({ onClick, isActive }) => {
                     absolute bottom-1 right-1
                     w-3 h-3 rounded-full
                     border-2 border-white dark:border-neutral-900
-                    ${user.isOnline ? 'bg-green-500' : 'bg-neutral-400'}
+                    ${user?.isOnline ? 'bg-green-500' : 'bg-neutral-400'}
                 `}
             />
         </button>

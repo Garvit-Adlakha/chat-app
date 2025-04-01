@@ -11,6 +11,7 @@ import chatService from '../../service/chatService';
 import userService from '../../service/userService';
 import useChatStore from '../../store/chatStore';
 import { formatLastActive } from '../../features/feature';
+import Avatar from '../shared/Avatar';
 
 export const ChatHeader = ({ chatId }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -103,20 +104,20 @@ export const ChatHeader = ({ chatId }) => {
                         <div className="avatar relative">
                             {chatDetails.isGroupChat ? (
                                 <div className="tooltip" data-tip={chatDetails.members.slice(0, 3).map(m => m.name).join(', ')}>
-                                    <div className="w-12 rounded-full">
-                                        <img
+                                    <div className="w-12">
+                                        <Avatar
                                             src={chatDetails.groupIcon?.url}
                                             alt={chatDetails.name}
-                                            className="object-cover"
+                                            className="w-12 h-12"
                                         />
                                     </div>
                                 </div>
                             ) : (
-                                <div className="w-12 rounded-full relative ">
-                                    <img
+                                <div className="w-12 relative">
+                                    <Avatar
                                         src={otherMember?.avatar}
                                         alt={otherMember?.name}
-                                        className="object-cover"
+                                        className="w-12 h-12"
                                     />
                                     {isOtherUserOnline && (
                                         <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full ring-2 ring-neutral-800" />

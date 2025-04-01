@@ -46,29 +46,28 @@ export const socketAuthenticator = async (err, socket, next) => {
     // Try to get token from cookies
     if (socket.request.cookies && socket.request.cookies.token) {
       token = socket.request.cookies.token;
-      console.log("Token from cookie:", token.substring(0, 15) + "...");
+      console.log("Token from cookie found");
     }
     // Fallback to auth object
     else if (socket.handshake.auth && socket.handshake.auth.token) {
       token = socket.handshake.auth.token;
-      console.log("Token from auth:", token.substring(0, 15) + "...");
+      console.log("Token from auth object found");
     }
     // Check headers
     else if (socket.handshake.headers.authorization) {
       // Handle both "Bearer <token>" and just "<token>" formats
       const authHeader = socket.handshake.headers.authorization;
       token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
-      console.log("Token from header:", token.substring(0, 15) + "...");
+      console.log("Token from header found");
     }
     
     if (!token) {
       console.error("No token found in socket request");
-      console.log("Socket handshake:", JSON.stringify({
-        headers: socket.handshake.headers,
+      console.log("Socket handshake details:", {
         auth: socket.handshake.auth,
         query: socket.handshake.query
-      }, null, 2));
-      return next(new Error("Authentication required"));
+      });
+      return next(new Error("Authentication token is missing"));
     }
     
     try {
@@ -88,11 +87,10 @@ export const socketAuthenticator = async (err, socket, next) => {
       socket.user = user;
       socket.userId = user._id;
       console.log("Socket authenticated for user:", user._id.toString());
-      
       next();
     } catch (jwtError) {
       console.error("JWT verification error:", jwtError.message);
-      return next(new Error("Invalid token"));
+      return next(new Error("Invalid or expired token"));
     }
   } catch (error) {
     console.error("Socket authentication error:", error.message, error.stack);

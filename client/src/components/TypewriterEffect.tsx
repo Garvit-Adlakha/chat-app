@@ -14,7 +14,7 @@ const WORDS = [
 ];
 
 const BUTTON_VARIANTS = {
-  primary: "bg-blue-500 hover:bg-blue-600 text-white",
+  primary: "bg-blue-500 hover:bg-blue-600 text-white p-2",
   secondary: "bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 dark:bg-gray-800 dark:text-white dark:border-gray-600",
 };
 

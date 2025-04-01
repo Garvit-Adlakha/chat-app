@@ -41,9 +41,11 @@ const io = new Server(server, {
         },
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-        allowedHeaders: ["Content-Type", "Authorization"]
+        allowedHeaders: ["Content-Type", "Authorization", "Accept"]
     },
     transports: ['websocket', 'polling'],
+    pingTimeout: 60000, // Increase ping timeout to 60 seconds
+    pingInterval: 25000, // Ping every 25 seconds
     cookie: {
         name: 'token',
         httpOnly: true,
@@ -109,6 +111,13 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization","Accept"],
 };
 
+
+app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    next();
+  });
+
 app.use(cors(corsOptions));
 
 //api routes
@@ -135,9 +144,11 @@ io.use((socket, next) => {
 
 //sockets routes
 io.engine.on("connection_error", (err) => {
-    if (process.env.NODE_ENV === 'development') {
-        console.log("Socket.IO connection error:", err.code, err.message);
-    }
+    console.error("Socket.IO connection error:", {
+        code: err.code,
+        message: err.message,
+        context: err.context || 'No context available'
+    });
 });
 
 io.on('connection', async(socket) => {
@@ -270,5 +281,9 @@ import { NEW_MESSAGE, NEW_MESSAGE_ALERT, STOP_TYPING } from './constants.js';
 app.use(errorHandler)
 //server
 server.listen(Port, () => {
-    console.log(`Server running on port ${Port} in ${process.env.NODE_ENV} mode`)
-})
+    console.log(`Server running on port ${Port} in ${process.env.NODE_ENV} mode`);
+    console.log(`Socket.IO server ready for connections`);
+}).on('error', (err) => {
+    console.error('Server startup error:', err);
+    process.exit(1);
+});

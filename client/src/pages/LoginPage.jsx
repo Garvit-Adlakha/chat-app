@@ -5,168 +5,16 @@ import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import userService from "../service/userService";
 import toast from "react-hot-toast";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
-  const googleButtonRef = useRef(null);
-
   const queryClient = useQueryClient();
   const formAction = useFormAction();
-  
-  const GOOGLE_SCRIPT_ID = "google-signin-script";
-  const MAX_RETRIES = 3;
-
-  // Add Google Sign-In SDK with better error handling
-  useEffect(() => {
- 
-    
-    // Load the Google Sign-In SDK
-    const loadGoogleScript = () => {
-      if (document.getElementById(GOOGLE_SCRIPT_ID)) return;
-
-      const script = document.createElement("script");
-      script.id = GOOGLE_SCRIPT_ID;
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.defer = true;
-
-      script.onload = () => {
-        initializeGoogleSignIn();
-      };
-
-      script.onerror = () => {
-        setError("Google Sign-In is unavailable. Please try email login.");
-      };
-
-      document.body.appendChild(script);
-    };
-
-    loadGoogleScript();
-
-    return () => {
-      const existingScript = document.getElementById(GOOGLE_SCRIPT_ID);
-      if (existingScript) {
-        existingScript.remove();
-      }
-    };
-  }, []);
-
-  // Check if Google API is loaded
-  const isGoogleScriptLoaded = () => {
-    return typeof window !== "undefined" && typeof window.google !== "undefined";
-  };
-
-  // Initialize Google Sign-In with Retry Mechanism
-  const initializeGoogleSignIn = (attempt = 1) => {
-    if (!isGoogleScriptLoaded()) {
-      if (attempt <= MAX_RETRIES) {
-        setTimeout(() => initializeGoogleSignIn(attempt + 1), 1500); // Retry after 1.5s
-      } else {
-        setError("Google Sign-In temporarily unavailable. Please try again later.");
-      }
-      return;
-    }
-
-    try {
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      if (!clientId) {
-        throw new Error("Missing Google Client ID");
-      }
-
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: handleGoogleCallback,
-        cancel_on_tap_outside: true,
-        prompt_parent_id: "google-one-tap",
-        error_callback: (error) => {
-          setError("Google Sign-In failed. Please try again.");
-          setGoogleLoading(false);
-        },
-      });
-      
-      // Render the Google Sign-In button instead of using prompt
-      renderGoogleButton();
-    } catch (error) {
-      setError("Google Sign-In configuration error. Please try again.");
-      setGoogleLoading(false);
-    }
-  };
-
-  // Render Google Sign-In button
-  const renderGoogleButton = () => {
-    if (!isGoogleScriptLoaded() || !googleButtonRef.current) return;
-    
-    try {
-      window.google.accounts.id.renderButton(googleButtonRef.current, {
-        type: "standard",
-        theme: "filled_blue",
-        size: "large",
-        text: "continue_with",
-        shape: "rectangular",
-        logo_alignment: "left",
-        width: googleButtonRef.current.offsetWidth
-      });
-    } catch (error) {
-      console.error("Failed to render Google button:", error);
-    }
-  };
-
-  // Handle Google Sign-In Prompt - this is now a fallback
-  const handleGoogleSignIn = () => {
-    setGoogleLoading(true);
-    setError("");
-
-    if (!isGoogleScriptLoaded()) {
-      setError("Google Sign-In temporarily unavailable. Please try again later.");
-      setGoogleLoading(false);
-      return;
-    }
-
-    try {
-      // Use explicit user interaction by programmatically clicking the rendered button
-      const googleButton = document.querySelector('[aria-labelledby="button-label"]');
-      if (googleButton) {
-        googleButton.click();
-        return;
-      }
-      
-      // Fallback to prompt if button is not rendered
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed()) {
-          const reason = notification.getNotDisplayedReason();
-
-          if (reason === "browser_not_supported") {
-            setError("Your browser does not support Google Sign-In.");
-          } else if (reason === "invalid_client") {
-            setError("Invalid Google Sign-In configuration.");
-          } else if (reason === "missing_client_id") {
-            setError("Missing Google Client ID. Contact administrator.");
-          } else if (reason === "unregistered_origin") {
-            setError("This website is not registered for Google Sign-In.");
-          } else if (reason === "suppressed_by_user") {
-            setError("Sign-in prompt was previously dismissed. Try clearing cookies or using incognito mode.");
-          } else if (reason === "third_party_cookies_disabled") {
-            setError("Enable third-party cookies in your browser settings to use Google Sign-In.");
-          } else {
-            setError(`Google Sign-In unavailable: ${reason}`);
-          }
-          setGoogleLoading(false);
-        } else if (notification.isSkippedMoment()) {
-          setGoogleLoading(false);
-        } else if (notification.isDismissedMoment()) {
-          setGoogleLoading(false);
-        }
-      });
-    } catch (error) {
-      setError("Failed to show Google Sign-In. Please try again.");
-      setGoogleLoading(false);
-    }
-  };
 
   // Google Authentication Mutation
   const googleAuthMutation = useMutation({
@@ -177,25 +25,22 @@ const LoginPage = () => {
       queryClient.setQueryData(["user"], data.user);
       queryClient.invalidateQueries(["user"]).then(() => {
         toast.success(data.message || "Logged in with Google successfully");
-        setGoogleLoading(false);
         navigate("/chat");
       });
     },
     onError: (error) => {
       setError(error.message || "Google authentication failed");
-      setGoogleLoading(false);
     },
   });
 
-  // Callback handler for Google sign-in
-  const handleGoogleCallback = (response) => {
-    if (response.credential) {
-      // Send the ID token to your server
-      googleAuthMutation.mutate(response.credential);
-    } else {
-      setGoogleLoading(false);
-      setError("Google sign-in failed. Please try again.");
-    }
+  // Handle Google Sign-In success
+  const handleGoogleSuccess = (credential) => {
+    googleAuthMutation.mutate(credential);
+  };
+
+  // Handle Google Sign-In error
+  const handleGoogleError = (errorMessage) => {
+    setError(errorMessage);
   };
 
   const loginMutation = useMutation({
@@ -203,15 +48,12 @@ const LoginPage = () => {
       return userService.login(formData)
     },
     onSuccess: (data) => {
-      // Save token to localStorage or sessionStorage based on rememberMe
-      
       queryClient.setQueryData(['user'], data.user);
        queryClient.invalidateQueries(['user']).then(()=>{
         toast.success("Logged in successfully")
          setIsLoading(false);
          navigate("/chat");    
        })
-      // Redirect user
     },
     onError: (error) => {
       setError(error.message || "Login failed");
@@ -267,7 +109,7 @@ const LoginPage = () => {
             </div>
           </div>
 
-          {/* <div className="mt-8 bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+          <div className="mt-8 bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
             <h3 className="text-xl font-medium mb-3 flex items-center">
               <IconRobot className="mr-2 text-blue-300" /> Try Our AI Assistant
             </h3>
@@ -283,25 +125,19 @@ const LoginPage = () => {
               <IconMessage className="w-5 h-5" />
               <span className="font-medium">Start Guest Experience</span>
             </HoverBorderGradient>
-          </div> */}
+          </div>
         </div>
 
         <div className="card bg-black/20 backdrop-blur-lg w-full max-w-md shrink-0 shadow-2xl transition-all duration-300 hover:shadow-3xl lg:w-1/2 border border-white/10">
           <div className="card-body animate-slideUp">
             <h1 className="text-3xl text-center mb-6 text-white font-bold">Welcome Back</h1>
 
-            {/* Social Login Options */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              {/* Custom Google button - fallback option */}
-              <button
-                className="btn flex-1 bg-white hover:bg-gray-100 text-gray-800 font-semibold border-none"
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={googleLoading}
-              >
-                <IconBrandGoogle className="w-5 h-5 mr-2" />
-                <span>{googleLoading ? 'Signing in...' : 'Google'}</span>
-              </button>
+            {/* Google Sign-In Button */}
+            <div className="mb-6 bg-black">
+              <GoogleSignInButton 
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+              />
             </div>
             <div className="divider text-white text-sm opacity-60">or continue with email</div>
 
@@ -316,16 +152,18 @@ const LoginPage = () => {
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="form-control">
-                <label className="label">
+                <label className="label" htmlFor="email">
                   <span className="label-text text-white">Email</span>
                 </label>
                 <div className="relative">
                   <input
                     type="email"
+                    id="email"
                     placeholder="your.email@example.com"
                     name="email"
                     className="input input-bordered w-full bg-white/10 text-white placeholder:text-gray-400 border-white/20 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30"
                     required
+                    autoComplete="email"
                   />
                   <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/60" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -334,23 +172,26 @@ const LoginPage = () => {
               </div>
 
               <div className="form-control">
-                <label className="label">
+                <label className="label" htmlFor="password">
                   <span className="label-text text-white">Password</span>
                   <a className="label-text-alt link link-hover text-blue-300">Forgot password?</a>
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
+                    id="password"
                     placeholder="••••••••"
                     name="password"
                     className="input input-bordered w-full bg-white/10 text-white placeholder:text-gray-400 border-white/20 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30"
                     required
                     minLength="6"
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       {showPassword ? (
@@ -369,6 +210,7 @@ const LoginPage = () => {
               <div className="flex items-center mt-2">
                 <input
                   id="remember-me"
+                  name="remember-me"
                   type="checkbox"
                   checked={rememberMe}
                   onChange={() => setRememberMe(!rememberMe)}

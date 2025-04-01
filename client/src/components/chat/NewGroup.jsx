@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconX, IconSearch, IconUserPlus, IconPhoto } from '@tabler/icons-react';
+import { IconX, IconSearch, IconUserPlus, IconPhoto, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import userService from '../../service/userService';
 import chatService from '../../service/chatService';
@@ -11,6 +11,7 @@ const NewGroup = ({ isOpen, onClose }) => {
     const [groupIcon, setGroupIcon] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedUsers, setSelectedUsers] = useState({});
+    const [uploading, setUploading] = useState(false);
 
     // Replace user search with friends list query
     const { data: friends = [], isLoading } = useQuery({
@@ -59,6 +60,11 @@ const NewGroup = ({ isOpen, onClose }) => {
             return;
         }
 
+        // Provide feedback about using default icon if none is provided
+        if (!groupIcon) {
+            toast.info("Using default group icon");
+        }
+
         mutate({ 
             name: groupName.trim(),
             members: memberIds,
@@ -88,12 +94,22 @@ const NewGroup = ({ isOpen, onClose }) => {
                 toast.error('Image size should be less than 5MB');
                 return;
             }
+            setUploading(true);
             const reader = new FileReader();
             reader.onload = () => {
                 setGroupIcon(reader.result);
+                setUploading(false);
+            };
+            reader.onerror = () => {
+                toast.error('Failed to read file');
+                setUploading(false);
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    const handleRemoveIcon = () => {
+        setGroupIcon(null);
     };
 
     if (!isOpen) return null;
@@ -123,33 +139,53 @@ const NewGroup = ({ isOpen, onClose }) => {
                         {/* Group Icon Selector */}
                         <div className="flex flex-col items-center mb-4">
                             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                Group Icon
+                                Group Icon (Optional)
                             </label>
                             <div className="flex flex-col items-center gap-3">
                                 <div className="relative group cursor-pointer">
-                                    <div className="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center overflow-hidden border-2 border-blue-300 dark:border-blue-700">
-                                        {groupIcon ? (
+                                    <div className="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center overflow-hidden border-2 border-blue-300 dark:border-blue-700 relative">
+                                        {uploading ? (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                                            </div>
+                                        ) : groupIcon ? (
                                             <img src={groupIcon} alt="Group Icon" className="w-full h-full object-cover" />
                                         ) : (
-                                            <span className="text-neutral-500 dark:text-neutral-400">No Icon</span>
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <div className="text-center">
+                                                    <span className="text-neutral-500 dark:text-neutral-400 text-sm">Default icon will be used</span>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
-                                <div>
+                                <div className="flex gap-2">
                                     <button
                                         type="button"
                                         onClick={() => document.getElementById('group-icon-input').click()}
-                                        className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-lg transition-colors"
+                                        className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors"
+                                        disabled={uploading}
                                     >
                                         <IconPhoto size={18} />
-                                        Upload Image
+                                        {uploading ? 'Uploading...' : 'Upload Image'}
                                     </button>
+                                    {groupIcon && (
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveIcon}
+                                            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900/60 rounded-lg transition-colors"
+                                        >
+                                            <IconTrash size={18} />
+                                            Remove
+                                        </button>
+                                    )}
                                 </div>
                                 <VisuallyHiddenInput
                                     id="group-icon-input"
                                     type="file"
                                     accept="image/*"
                                     onChange={handleFileChange}
+                                    disabled={uploading}
                                 />
                             </div>
                         </div>

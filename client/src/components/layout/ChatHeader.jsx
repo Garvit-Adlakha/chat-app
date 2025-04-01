@@ -5,14 +5,13 @@ import {
 } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import ChatProfile from '../profile/ChatProfile';
-import { useClickOutside } from '../../hooks/UseClickOutside';
 import { useQuery } from '@tanstack/react-query';
 import chatService from '../../service/chatService';
 import userService from '../../service/userService';
 import useChatStore from '../../store/chatStore';
 import { formatLastActive } from '../../features/feature';
+import GroupAvatar from '../shared/GroupAvatar';
 import Avatar from '../shared/Avatar';
-
 export const ChatHeader = ({ chatId }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const ChatProfileRef = useRef(null);
@@ -105,9 +104,9 @@ export const ChatHeader = ({ chatId }) => {
                             {chatDetails.isGroupChat ? (
                                 <div className="tooltip" data-tip={chatDetails.members.slice(0, 3).map(m => m.name).join(', ')}>
                                     <div className="w-12">
-                                        <Avatar
-                                            src={chatDetails.groupIcon?.url}
-                                            alt={chatDetails.name}
+                                        <GroupAvatar
+                                            groupIcon={chatDetails.groupIcon}
+                                            name={chatDetails.name}
                                             className="w-12 h-12"
                                         />
                                     </div>

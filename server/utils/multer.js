@@ -27,15 +27,27 @@ const fileFilter = (req, file, cb) => {
         fieldname: file.fieldname
     });
 
-    // Accept audio files explicitly - this fixes MP3 issues
-    if (file.mimetype === 'audio/mpeg' || 
-        file.mimetype === 'audio/mp3' ||
-        file.mimetype.startsWith('image/') ||
-        file.mimetype.startsWith('video/') ||
-        file.mimetype === 'application/pdf' ||
-        file.mimetype.includes('document') ||
-        file.mimetype.includes('sheet') ||
-        file.mimetype.includes('presentation')) {
+    // Expanded list of allowed MIME types
+    const allowedMimeTypes = [
+        // Images
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        // Documents - explicitly include PDF
+        'application/pdf',
+        // Documents - Microsoft Office
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+        // Audio files
+        'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg',
+        // Video files
+        'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'
+    ];
+
+    if (allowedMimeTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
         cb(new Error(`Unsupported file type: ${file.mimetype}`), false);

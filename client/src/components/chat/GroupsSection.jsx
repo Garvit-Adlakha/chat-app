@@ -5,6 +5,7 @@ import Modal from "./NewGroup";
 import { useQuery } from "@tanstack/react-query";
 import chatService from "../../service/chatService";
 import { useNavigate } from "react-router-dom";
+import { useSidebar } from "../ui/sidebar";
 const GroupsSection = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -12,6 +13,7 @@ const GroupsSection = () => {
         queryKey: ["groups"],
         queryFn: chatService.UserGroupChats,
     });
+    const {open,setOpen}=useSidebar()
 
     const navigate=useNavigate()
 
@@ -23,6 +25,9 @@ const GroupsSection = () => {
         setIsModalOpen(false);
     };
     const groupClickHandler = (groupId) => {
+        if(open){
+            setOpen(false)
+        }
         navigate(`/chat/${groupId}`);
     }
 

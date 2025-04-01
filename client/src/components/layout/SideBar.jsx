@@ -18,7 +18,6 @@ import { MobileDock } from './sidebar-components/MobileDock';
 
 export const SideBar = () => {
     const [activeSection, setActiveSection] = useState('direct');
-    const [showOnlineOnly, setShowOnlineOnly] = useState(false);
     const { isOpen } = useSidebar();  // Changed from open to isOpen for clarity
     const{data:request , isFetching}=useQuery({
         queryKey:["requests"],

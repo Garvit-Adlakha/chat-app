@@ -267,7 +267,7 @@ const LoginPage = () => {
             </div>
           </div>
 
-          <div className="mt-8 bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+          {/* <div className="mt-8 bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
             <h3 className="text-xl font-medium mb-3 flex items-center">
               <IconRobot className="mr-2 text-blue-300" /> Try Our AI Assistant
             </h3>
@@ -283,7 +283,7 @@ const LoginPage = () => {
               <IconMessage className="w-5 h-5" />
               <span className="font-medium">Start Guest Experience</span>
             </HoverBorderGradient>
-          </div>
+          </div> */}
         </div>
 
         <div className="card bg-black/20 backdrop-blur-lg w-full max-w-md shrink-0 shadow-2xl transition-all duration-300 hover:shadow-3xl lg:w-1/2 border border-white/10">

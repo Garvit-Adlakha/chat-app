@@ -1,20 +1,48 @@
 import moment from "moment";
 
 const fileFormat = (url = "") => {
-  const fileExt = url.split(".").pop();
+  // Extract the filename from the URL
+  const filename = url.split('/').pop();
+  
+  // Extract the file extension
+  const fileExt = filename.split('.').pop().toLowerCase();
 
-  if (fileExt === "mp4" || fileExt === "webm" || fileExt === "ogg")
+  // Check for video formats
+  if (["mp4", "webm", "ogg", "mov", "avi"].includes(fileExt)) {
     return "video";
-
-  if (fileExt === "mp3" || fileExt === "wav") return "audio";
-  if (
-    fileExt === "png" ||
-    fileExt === "jpg" ||
-    fileExt === "jpeg" ||
-    fileExt === "gif"
-  )
+  }
+  
+  // Check for audio formats
+  if (["mp3", "wav", "ogg", "m4a", "flac", "aac"].includes(fileExt)) {
+    return "audio";
+  }
+  
+  // Check for image formats
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(fileExt)) {
     return "image";
-
+  }
+  
+  // Check for PDF format - explicitly recognize PDFs
+  if (fileExt === "pdf") {
+    return "pdf";
+  }
+  
+  // Check for document formats
+  if (["doc", "docx", "txt", "rtf"].includes(fileExt)) {
+    return "document";
+  }
+  
+  // Check for spreadsheet formats
+  if (["xls", "xlsx", "csv"].includes(fileExt)) {
+    return "spreadsheet";
+  }
+  
+  // Check for presentation formats
+  if (["ppt", "pptx"].includes(fileExt)) {
+    return "presentation";
+  }
+  
+  // Default to generic file type
   return "file";
 };
 

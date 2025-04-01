@@ -170,7 +170,6 @@ export const MessageInput = ({chatId, members}) => {
           return;
         }
       }
-      
       setIsUploading(true);
       
       try {

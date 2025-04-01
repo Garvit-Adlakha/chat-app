@@ -5,11 +5,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import chatService from '../../service/chatService';
 import useChatStore from '../../store/chatStore';
+import { useSidebar } from '../ui/sidebar';
 
 const DirectMessagesSection = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const navigate = useNavigate();
     const location = useLocation();
+    const {open,setOpen}=useSidebar()
     const { messageCounts, clearMessageCount } = useChatStore();
     
     // Get current chat ID from URL
@@ -39,6 +41,10 @@ const DirectMessagesSection = () => {
         if (messageCounts[user._id]) {
             clearMessageCount(user._id);
         }
+        if(open){
+            setOpen(false)
+        }
+
         navigate(`/chat/${user._id}`);
     };
 

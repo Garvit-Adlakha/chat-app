@@ -1,6 +1,6 @@
 
 const Title = ({
-  title = 'Chat App',
+  title = 'WhisperWire',
   description = 'This is a chat app',
 }) => {
   return (

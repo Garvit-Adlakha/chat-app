@@ -8,6 +8,26 @@ import { uploadMedia, deleteMediaFromCloudinary, deleteVideoFromCloudinary } fro
 import { Message } from "../models/message.model.js";
 import { NEW_MESSAGE_ALERT, NEW_ATTACHMENT_ALERT } from "../constants.js";
 
+// Update the getFileType helper function
+const getFileType = (format, mimeType) => {
+    // Properly identify PDFs - they can come from Cloudinary as both 'pdf' or 'raw'
+    if (format === 'pdf' || mimeType === 'application/pdf') {
+        return 'pdf';
+    }
+    
+    const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    const videoFormats = ['mp4', 'webm', 'ogg', 'mov'];
+    const audioFormats = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'];
+    const documentFormats = ['doc', 'docx', 'txt', 'rtf'];
+    
+    if (imageFormats.includes(format)) return 'image';
+    if (videoFormats.includes(format)) return 'video';
+    if (audioFormats.includes(format)) return 'audio';
+    if (documentFormats.includes(format)) return 'document';
+    
+    return 'file';
+};
+
 export const newGroupChat = catchAsync(async (req, res, next) => {
     try {
         console.log("Request body:", req.body);
@@ -560,7 +580,10 @@ export const sendAttachments = catchAsync(async (req, res, next) => {
         content: "",
         attachments: attachments.map(a => ({
             publicId: a.public_id,
-            url: a.secure_url
+            url: a.secure_url,
+            // Pass both format and mimetype to get the right type
+            type: getFileType(a.format, files[0].mimetype),
+            name: files[0].originalname
         })),
         sender: req.id,
         name: req.user.name,

@@ -6,6 +6,7 @@ import { NEW_MESSAGE, TYPING, STOP_TYPING } from "../../constants/event.js";
 import useSocketStore from "../socket/Socket.jsx";
 import chatService from "../../service/chatService.js";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from 'react-hot-toast';
 
 export const MessageInput = ({chatId, members}) => {
     const [message, setMessage] = useState("");
@@ -122,16 +123,60 @@ export const MessageInput = ({chatId, members}) => {
       });
     };
 
+    const validateFile = (file) => {
+      // Check file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        return 'File too large (max 10MB)';
+      }
+      
+      // Audio file types need special handling
+      if (file.type === 'audio/mpeg' || 
+          file.type === 'audio/mp3' || 
+          file.type.includes('audio/')) {
+        return null; // MP3 files are allowed
+      }
+      
+      // Check other file types
+      const allowedTypes = [
+        // Images
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        // Documents
+        'application/pdf', 'application/msword', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+        // Videos
+        'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'
+      ];
+      
+      if (!allowedTypes.includes(file.type)) {
+        return `File type ${file.type} not allowed`;
+      }
+      
+      return null; // No error
+    };
+
     const handleFileSelect = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+      const files = Array.from(e.target.files);
+      
+      // Validate each file
+      for (const file of files) {
+        const error = validateFile(file);
+        if (error) {
+          toast.error(error);
+          return;
+        }
+      }
       
       setIsUploading(true);
       
       try {
         // Create FormData and append the file
         const formData = new FormData();
-        formData.append('files', file);
+        formData.append('files', files[0]);
         formData.append('chatId', chatId);
         
         // Upload the file

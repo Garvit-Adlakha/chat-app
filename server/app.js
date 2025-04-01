@@ -23,14 +23,29 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: process.env.CLIENT_URL || "http://localhost:3000",
+        // Allow both specific origins and handle null origin (for file:// protocol)
+        origin: function(origin, callback) {
+            const allowedOrigins = [
+                "http://localhost:3000",
+                "http://localhost:4173",
+                process.env.CLIENT_URL
+            ].filter(Boolean);
+            
+            // Allow requests with no origin (like mobile apps or curl requests)
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                console.log("Blocked origin:", origin);
+                callback(null, false);
+            }
+        },
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
         allowedHeaders: ["Content-Type", "Authorization"]
     },
     transports: ['websocket', 'polling'],
-    cookie:{
-        name:'token',
+    cookie: {
+        name: 'token',
         httpOnly: true,
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         secure: process.env.NODE_ENV === 'production',
@@ -60,6 +75,12 @@ app.use(express.urlencoded({
     limit: '10kb'
 }))
 app.use(cookieParser())
+
+// Fix for CORB issues with external images
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
 
 //logging
 if (process.env.NODE_ENV === 'development') {

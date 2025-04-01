@@ -1,59 +1,55 @@
-import multer from "multer"
-import path from "path"
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
-// Create storage configuration
+// Create uploads directory if it doesn't exist
+const uploadsDir = './uploads';
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, "uploads/")
+        cb(null, uploadsDir);
     },
     filename: function (req, file, cb) {
-        // Extract the original file name and extension
-        const originalName = path.parse(file.originalname).name
-        const extension = path.extname(file.originalname)
-        
-        // Add a small unique suffix to prevent filename collisions
-        // Using a shorter timestamp to keep more of the original name visible
-        const timestamp = Date.now().toString().slice(-6)
-        cb(null, `${originalName}_${timestamp}${extension}`)
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
     }
-})
+});
 
-// File filter to allow specific file types
+// Fix MIME type checking by including audio/mpeg explicitly
 const fileFilter = (req, file, cb) => {
-    // Accept images, PDFs, documents, videos, and audio files
-    const allowedFileTypes = [
-        // Images
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-        // Documents
-        'application/pdf', 
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // docx
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation', // pptx
-        'text/plain',
-        // Videos
-        'video/mp4', 'video/webm', 'video/ogg',
-        // Audio
-        'audio/mpeg', 'audio/wav', 'audio/ogg'
-    ]
-    
-    if (allowedFileTypes.includes(file.mimetype)) {
-        cb(null, true)
+    // Log the file info for debugging
+    console.log('File upload info:', {
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        fieldname: file.fieldname
+    });
+
+    // Accept audio files explicitly - this fixes MP3 issues
+    if (file.mimetype === 'audio/mpeg' || 
+        file.mimetype === 'audio/mp3' ||
+        file.mimetype.startsWith('image/') ||
+        file.mimetype.startsWith('video/') ||
+        file.mimetype === 'application/pdf' ||
+        file.mimetype.includes('document') ||
+        file.mimetype.includes('sheet') ||
+        file.mimetype.includes('presentation')) {
+        cb(null, true);
     } else {
-        cb(new Error(`Unsupported file type: ${file.mimetype}. Allowed types: ${allowedFileTypes.join(', ')}`), false)
+        cb(new Error(`Unsupported file type: ${file.mimetype}`), false);
     }
-}
+};
 
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 1024 * 1024 * 50,
-        files:5 //
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+        files: 5
     },
     fileFilter: fileFilter
-})
+});
 
-export const attachmentsMulter = upload.array("files", 5)
-export default upload
+export const attachmentsMulter = upload.array("files", 5);
+export default upload;

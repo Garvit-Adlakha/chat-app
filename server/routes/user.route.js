@@ -9,8 +9,16 @@ router.post('/signup',upload.single('avatar'),registerUser)
 router.post('/signin',loginUser)
 router.post('/google-auth', googleAuth)
 
-router.get('/profile',isAuthenticated,getProfile)
-router.get('/profile/:id',isAuthenticated,getProfile)
+router.get('/profile',isAuthenticated,(req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();}
+    ,getProfile)
+router.get('/profile/:id',isAuthenticated,
+    (req, res, next) => {
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        next();
+    }
+    ,getProfile)
 router.post('/signout',isAuthenticated,signout)
 
 router.get('/search',isAuthenticated,searchUser)

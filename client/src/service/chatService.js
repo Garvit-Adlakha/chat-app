@@ -106,47 +106,48 @@ const chatService = {
         throw new Error('Chat ID is required for sending attachments');
       }
       
-      let formData;
+      let formData = new FormData();
+      formData.append('chatId', chatId);
       
-      // Case 1: files is already FormData
-      if (files instanceof FormData) {
+      // Simplify file handling to be more robust
+      if (Array.isArray(files)) {
+        files.forEach(file => {
+          if (file) {
+            // Log each file being uploaded
+            console.log(`Adding file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+            formData.append('files', file);
+          }
+        });
+      } else if (files instanceof File) {
+        // Single file
+        console.log(`Adding file: ${files.name}, type: ${files.type}, size: ${files.size} bytes`);
+        formData.append('files', files);
+      } else if (files instanceof FormData) {
+        // If files is already FormData
         formData = files;
-        
-        // Make sure chatId is included
         if (!formData.has('chatId')) {
           formData.append('chatId', chatId);
         }
       }
-      // Case 2: files is an array or a single file
-      else {
-        formData = new FormData();
-        formData.append('chatId', chatId);
-        
-        if (Array.isArray(files)) {
-          // Handle array of files
-          files.forEach((file, index) => {
-            if (file) {
-              formData.append(`files`, file);
-            }
-          });
-        } else if (files) {
-          // Handle single file
-          formData.append('files', files);
-        } else {
-          console.warn('No files provided to sendAttachments');
-        }
+      
+      // Log formData for debugging
+      console.log('FormData contents:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`  ${key} = ${value instanceof File ? `File: ${value.name}, ${value.size} bytes` : value}`);
       }
-      // Always use fileUploadInstance for consistency
+      
+      // Add upload progress tracking
       const response = await fileUploadInstance.post('/chat/message', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`Upload progress: ${percentCompleted}%`);
+        }
       });
+      
       return response.data;
     } catch (error) {
       console.error('Error uploading files:', error);
       
-      // Enhanced error logging
       if (error.response) {
         console.error(`Server responded with status ${error.response.status}:`, error.response.data);
       } else if (error.request) {
@@ -155,7 +156,6 @@ const chatService = {
         console.error('Error setting up request:', error.message);
       }
       
-      // Convert axios error to a more usable format
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
       }

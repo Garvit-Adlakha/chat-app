@@ -46,39 +46,56 @@ export const socketAuthenticator = async (err, socket, next) => {
     // Try to get token from cookies
     if (socket.request.cookies && socket.request.cookies.token) {
       token = socket.request.cookies.token;
+      console.log("Token from cookie:", token.substring(0, 15) + "...");
     }
-    // Fallback to auth header
+    // Fallback to auth object
     else if (socket.handshake.auth && socket.handshake.auth.token) {
       token = socket.handshake.auth.token;
+      console.log("Token from auth:", token.substring(0, 15) + "...");
     }
+    // Check headers
     else if (socket.handshake.headers.authorization) {
-      token = socket.handshake.headers.authorization.split(' ')[1];
+      // Handle both "Bearer <token>" and just "<token>" formats
+      const authHeader = socket.handshake.headers.authorization;
+      token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
+      console.log("Token from header:", token.substring(0, 15) + "...");
     }
     
     if (!token) {
       console.error("No token found in socket request");
+      console.log("Socket handshake:", JSON.stringify({
+        headers: socket.handshake.headers,
+        auth: socket.handshake.auth,
+        query: socket.handshake.query
+      }, null, 2));
       return next(new Error("Authentication required"));
     }
     
-    const decodedData = jwt.verify(token, process.env.JWT_SECRET);
-    
-    if (!decodedData.userId) {
-      return next(new Error("Invalid authentication token"));
+    try {
+      const decodedData = jwt.verify(token, process.env.JWT_SECRET);
+      
+      if (!decodedData.userId) {
+        return next(new Error("Invalid authentication token"));
+      }
+      
+      const user = await User.findById(decodedData.userId);
+      
+      if (!user) {
+        return next(new Error("User not found"));
+      }
+      
+      // Attach user to socket
+      socket.user = user;
+      socket.userId = user._id;
+      console.log("Socket authenticated for user:", user._id.toString());
+      
+      next();
+    } catch (jwtError) {
+      console.error("JWT verification error:", jwtError.message);
+      return next(new Error("Invalid token"));
     }
-    
-    const user = await User.findById(decodedData.userId);
-    
-    if (!user) {
-      return next(new Error("User not found"));
-    }
-    
-    // Attach user to socket
-    socket.user = user;
-    socket.userId = user._id;
-    
-    next();
   } catch (error) {
-    console.error("Socket authentication error:", error.message);
+    console.error("Socket authentication error:", error.message, error.stack);
     return next(new Error("Authentication error"));
   }
 };

@@ -1,4 +1,4 @@
-import axiosInstance from "../axios/axiosInstance";
+import axiosInstance, { fileUploadInstance } from '../axios/axiosInstance';
 
 const chatService = {
   UserChats: async () => {
@@ -102,47 +102,62 @@ const chatService = {
   },
   sendAttachments: async ({chatId, files}) => {
     try {
-      // Make sure we're appending chatId to the FormData
+      if (!chatId) {
+        throw new Error('Chat ID is required for sending attachments');
+      }
+      
+      let formData;
+      
+      // Case 1: files is already FormData
       if (files instanceof FormData) {
-        // Check if chatId is already in FormData, if not add it
-        if (!files.has('chatId')) {
-          files.append('chatId', chatId);
+        formData = files;
+        
+        // Make sure chatId is included
+        if (!formData.has('chatId')) {
+          formData.append('chatId', chatId);
         }
-        
-        // Log the content type of files for debugging
-   
-        
-        const response = await axiosInstance.post(`/chat/message`, files, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-        return response.data;
-      } else {
-        // If files is not FormData, create a new FormData
-        const formData = new FormData();
+      }
+      // Case 2: files is an array or a single file
+      else {
+        formData = new FormData();
         formData.append('chatId', chatId);
         
         if (Array.isArray(files)) {
-          files.forEach(file => {
-            formData.append('files', file);
+          // Handle array of files
+          files.forEach((file, index) => {
+            if (file) {
+              formData.append(`files`, file);
+            }
           });
-        } else {
+        } else if (files) {
+          // Handle single file
           formData.append('files', files);
+        } else {
+          console.warn('No files provided to sendAttachments');
         }
-        
-        const response = await axiosInstance.post(`/chat/message`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-        return response.data;
       }
+      // Always use fileUploadInstance for consistency
+      const response = await fileUploadInstance.post('/chat/message', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+      });
+      return response.data;
     } catch (error) {
       console.error('Error uploading files:', error);
-      // Provide more detailed error information
+      
+      // Enhanced error logging
       if (error.response) {
-        console.error('Server responded with:', error.response.status, error.response.data);
+        console.error(`Server responded with status ${error.response.status}:`, error.response.data);
+      } else if (error.request) {
+        console.error('Request was made but no response received:', error.request);
+      } else {
+        console.error('Error setting up request:', error.message);
+      }
+      
+      // Convert axios error to a more usable format
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
       }
       throw error;
     }

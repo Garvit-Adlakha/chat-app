@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 const Avatar = ({ src, alt, className, user }) => {
     // Default image if none provided
-    const defaultImage = '/user.png';
+    const defaultImage = '/default-avatar.png';
     
     // Check if we should use Google profile attributes
     const hasGoogleVerification = user?.googleId && user?.isEmailVerified;

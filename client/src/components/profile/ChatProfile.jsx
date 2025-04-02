@@ -23,7 +23,6 @@ import RemoveMemberModal from '../chat/RemoveMemberModal';
 import useChatStore from '../../store/chatStore';
 import { formatLastActive } from '../../features/feature';
 import { useClickOutside } from '../../hooks/UseClickOutside';
-import GroupAvatar from '../shared/GroupAvatar';
 
 const ChatProfile = ({ chat, isOpen, onClose }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -196,11 +195,11 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
     }
 
 
-    // useClickOutside(sidebarRef, (event) => {
-    //     if (isOpen) {
-    //         onClose();
-    //     }
-    // });
+    useClickOutside(sidebarRef, (event) => {
+        if (isOpen) {
+            onClose();
+        }
+    });
 
 
 
@@ -285,12 +284,9 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
                             <div className="mb-4 relative">
                                 {chat?.isGroupChat ? (
                                     <div className="avatar placeholder mx-auto">
-                                        <GroupAvatar 
-                                            groupIcon={chat.groupIcon}
-                                            name={chat.name}
-                                            size="xl"
-                                            className="w-24 h-24"
-                                        />
+                                        <div className="w-24 rounded-full bg-neutral-200 dark:bg-neutral-700 mx-auto">
+                                            <Avatar src={chat.groupIcon?.url} />
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="avatar mx-auto">

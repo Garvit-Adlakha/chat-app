@@ -6,8 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import chatService from "../../service/chatService";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "../ui/sidebar";
-import GroupAvatar from "../shared/GroupAvatar"; // Add this import
-
 const GroupsSection = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -80,11 +78,14 @@ const GroupsSection = () => {
                             >
                                 <div className="avatar mr-1.5 sm:mr-2">
                                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden">
-                                        <GroupAvatar 
-                                            groupIcon={group.groupIcon}
-                                            name={group.name} 
-                                            size="md"
-                                            className="w-full h-full"
+                                        <img 
+                                            src={group.groupIcon?.url} 
+                                            alt={group.name} 
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = "https://via.placeholder.com/40?text=" + group.name.charAt(0);
+                                            }}
                                         />
                                     </div>
                                 </div>

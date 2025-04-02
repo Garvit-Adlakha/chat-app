@@ -77,12 +77,11 @@ const ProfileSection = ({ userId = null }) => {
     useEffect(() => {
         if (profileUser) {
             setEditedUser({
-                name: profileUser.name,
-                avatar: profileUser.avatar?.url || "",
+                name: profileUser.name ,
+                avatar: profileUser.avatar?.url || IconUserCircle,
                 bio: profileUser.bio || "Hello, I'm using Chat App!",
             });
-            // Make sure to set the preview avatar correctly
-            setPreviewAvatar(profileUser.avatar?.url || null);
+            setPreviewAvatar(profileUser.avatar?.url);
         }
     }, [profileUser]);
 
@@ -162,7 +161,7 @@ const ProfileSection = ({ userId = null }) => {
                     <div className="relative mb-6 group">
                         <div className="relative">
                             <Avatar
-                                src={previewAvatar || ""}
+                                src={previewAvatar}
                                 alt={editedUser.name}
                                 className={`w-28 h-28 ring-4 ring-white dark:ring-neutral-700 shadow-lg ${
                                     isCurrentUser ? 'cursor-pointer transition-all duration-300 group-hover:scale-105' : ''
@@ -181,7 +180,7 @@ const ProfileSection = ({ userId = null }) => {
                             )}
                             
                             {/* Display a badge for Google-verified users */}
-                            {profileUser?.googleId && (
+                            {profileUser?.googleId && profileUser?.isEmailVerified && (
                                 <div className="absolute -bottom-1 -right-1 bg-white dark:bg-neutral-800 rounded-full p-1 shadow-md">
                                     <img 
                                         src="/google-g-logo.svg" 

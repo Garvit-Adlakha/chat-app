@@ -1,14 +1,21 @@
 import io from 'socket.io-client';
 import { create } from 'zustand';
 
-// Get token from cookies
+// Enhanced function to get auth token from multiple sources
 const getAuthToken = () => {
+  // Try cookie first
   const cookies = document.cookie.split('; ');
   const tokenCookie = cookies.find(c => c.startsWith('token='));
-  return tokenCookie ? tokenCookie.split('=')[1] : null;
+  const cookieToken = tokenCookie ? tokenCookie.split('=')[1] : null;
+  
+  // Fall back to localStorage if cookie is not available
+  const localStorageToken = localStorage.getItem('authToken');
+  
+  // Return the first available token
+  return cookieToken || localStorageToken || null;
 };
 
-// Create socket instance with better reconnection settings
+// Create socket instance with better reconnection and authentication settings
 const createSocket = () => io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
   autoConnect: false,
   transports: ['websocket', 'polling'],
@@ -19,7 +26,8 @@ const createSocket = () => io(import.meta.env.VITE_API_URL || 'http://localhost:
   reconnectionDelayMax: 5000,
   timeout: 20000,
   auth: (cb) => {
-    cb({ token: getAuthToken() });
+    const token = getAuthToken();
+    cb({ token });
   }
 });
 

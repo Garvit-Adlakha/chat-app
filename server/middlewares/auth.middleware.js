@@ -7,20 +7,34 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const isAuthenticated = catchAsync(async (req, res, next) => {
-  const token = req.cookies.token;
+  // Check multiple sources for the token - cookies first, then authorization header
+  let token = req.cookies.token;
+  
+  // Also check Authorization header if cookie is not present
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
+    console.log("Using token from Authorization header");
+  }
+  
   if (!token) {
     throw new AppError("You are not logged in. Please log in to get access.", 401);
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log(decoded);
+    console.log("Token verified:", decoded.userId);
     req.id = decoded.userId;
     req.user = await User.findById(req.id);
 
     if (!req.user) {
       throw new AppError("User not found", 404);
     }
+
+    // Update last active status without awaiting to improve performance
+    User.findByIdAndUpdate(req.id, { lastActive: Date.now() }).catch(err => 
+      console.error("Failed to update last active:", err)
+    );
 
     next();
   } catch (error) {
@@ -34,6 +48,7 @@ export const isAuthenticated = catchAsync(async (req, res, next) => {
   }
 });
 
+// Socket authentication middleware - also update to check multiple token sources
 export const socketAuthenticator = async (err, socket, next) => {
   try {
     let token = null;
@@ -57,12 +72,6 @@ export const socketAuthenticator = async (err, socket, next) => {
     
     if (!token) {
       console.error("No token found in socket request");
-      console.log("Socket handshake details:", {
-        auth: socket.handshake.auth,
-        query: socket.handshake.query,
-        headers: socket.handshake.headers,
-        cookies: socket.request.cookies
-      });
       return next(new Error("Authentication token is missing"));
     }
     

@@ -53,6 +53,9 @@ const io = new Server(server, {
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     secure: process.env.NODE_ENV === 'production',
+    partitioned: true,    // Support for Chrome's CHIPS (Cookies Having Independent Partitioned State)
+    path: '/',            // Ensure cookie is available across the application
+    maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days, matching JWT_EXPIRY in .env
   },
 });
 
@@ -64,6 +67,14 @@ const limiter = rateLimit(
         message: 'Too many request from this IP, please try again after 15 minutes'
     }
 )
+
+// Enhanced cookie parser options for modern browsers
+app.use(cookieParser(process.env.JWT_SECRET, {
+  // These options will propagate to cookies created by the cookieParser middleware
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  secure: process.env.NODE_ENV === 'production',
+  httpOnly: true
+}));
 
 //middleware
 

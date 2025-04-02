@@ -211,6 +211,7 @@ export const MessageInput = ({chatId, members}) => {
               className="hidden" 
               onChange={handleFileSelect}
               ref={fileInputRef}
+              name="file input"
               disabled={isUploading}
             />
             <IconPaperclip className="w-5 h-5" />
@@ -221,6 +222,7 @@ export const MessageInput = ({chatId, members}) => {
               ref={inputRef}
               type="text"
               value={message}
+              name="message-input"
               onChange={onMessageChangeHanndler}
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}

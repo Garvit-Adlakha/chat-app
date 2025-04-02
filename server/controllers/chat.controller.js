@@ -36,12 +36,6 @@ export const newGroupChat = catchAsync(async (req, res, next) => {
         const { name, members, icon } = req.body;
         const file = req.file;
         
-        // Initialize groupIcon with default values
-        let groupIcon = {
-            publicId: "chat-app-default/default-group-icon",
-            url: "https://icon-library.com/images/group-chat-icon/group-chat-icon-17.jpg"
-        };
-        
         // Validate inputs
         if (!name?.trim()) {
             throw new AppError("Group name is required", 400);
@@ -64,7 +58,9 @@ export const newGroupChat = catchAsync(async (req, res, next) => {
             throw new AppError("Invalid member ID(s)", 400);
         }
 
-        // Process file if provided
+        // Handle group icon - prioritize file upload, then emoji, then default
+        let groupIcon;
+        
         if (file) {
             try {
                 const { public_id, secure_url } = await uploadMedia(file.path);
@@ -83,8 +79,16 @@ export const newGroupChat = catchAsync(async (req, res, next) => {
                 url: icon,
                 isEmoji: true
             };
+        } else {
+            // Default icon - store a valid Cloudinary URL for a default group icon
+            groupIcon = {
+                publicId: "chat-app-default/default-group-icon",
+                url: "https://res.cloudinary.com/garvitadlakha08/image/upload/v1743623142/mnaaxsj6yorop8c5bpzi.png"
+            };
         }
 
+        console.log("Group icon:", groupIcon);
+        
         const allMembers = [...new Set([...membersList, req.id])]; // Remove duplicates
 
         const chat = await Chat.create({
@@ -442,8 +446,7 @@ export const removeMembers = catchAsync(async (req, res, next) => {
         });
     } catch (error) {
         throw new AppError(
-            "Failed to remove members: " + error.message,
-            error.status || 500
+            "Failed to remove members: " + error.message,error.status || 500
         );
     }
 
@@ -758,4 +761,65 @@ export const getMessages = catchAsync(async (req, res, next) => {
         currentPage:page
     })
 })
+
+export const sendDirectMessage = catchAsync(async (req, res, next) => {
+    const { chatId, content, attachments } = req.body;
+
+    if (!chatId) {
+        throw new AppError("Chat ID is required", 400);
+    }
+
+    // Validate chat exists
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+        throw new AppError("Chat not found", 404);
+    }
+
+    // Prepare message document
+    const messageData = {
+        content: content || "",
+        sender: req.id,
+        chat: chatId
+    };
+
+    // Add attachments if present
+    if (attachments && attachments.length > 0) {
+        messageData.attachments = attachments.map(attachment => ({
+            url: attachment.url,
+            publicId: attachment.publicId
+        }));
+    }
+
+    // Create and save message
+    const message = await Message.create(messageData);
+    const populatedMessage = await Message.findById(message._id)
+        .populate({
+            path: 'sender',
+            select: 'name avatar'
+        });
+
+    // Emit realtime message event
+    const messageForRealTime = {
+        ...populatedMessage.toObject(),
+        createdAt: new Date().toISOString()
+    };
+
+    // Send to all members
+    const membersSocket = getSockets(chat.members);
+    io.to(membersSocket).emit(NEW_MESSAGE, {
+        chatId,
+        message: messageForRealTime
+    });
+    
+    // Send alert
+    io.to(membersSocket).emit(NEW_MESSAGE_ALERT, {
+        chatId,
+    });
+
+    return res.status(201).json({
+        success: true,
+        message: "Message sent successfully",
+        data: populatedMessage
+    });
+});
 

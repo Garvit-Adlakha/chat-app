@@ -1,8 +1,7 @@
 import {Router} from 'express';
-import { addMembers, deleteChat, getChatDetails, getMessages, getMyChats, getMyGroups, leaveGroup, newGroupChat, removeMembers, renameGroup, sendAttachments } from '../controllers/chat.controller.js';
+import { addMembers, deleteChat, getChatDetails, getMessages, getMyChats, getMyGroups, leaveGroup, newGroupChat, removeMembers, renameGroup, sendAttachments, sendDirectMessage } from '../controllers/chat.controller.js';
 import { isAuthenticated } from '../middlewares/auth.middleware.js';
 import upload, { attachmentsMulter } from '../utils/multer.js';
-import { get } from 'mongoose';
 
 const router=Router();
 
@@ -16,6 +15,9 @@ router.delete('/leave/:id',isAuthenticated,leaveGroup)
 
 router.post('/message',isAuthenticated,attachmentsMulter,sendAttachments)
 router.get('/message/:id',isAuthenticated,getMessages)
+
+// Add new route for direct message with Cloudinary attachments
+router.post('/direct-message', isAuthenticated, sendDirectMessage)
 
 //Get chat Details,rename,delete
 

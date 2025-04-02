@@ -26,6 +26,43 @@ const transformImage=(url)=>{
     return newUrl
 }
 
+/**
+ * Uploads a file directly to Cloudinary using signed parameters
+ * @param {File} file - The file to upload
+ * @param {Object} signedParams - Signed parameters from server
+ * @returns {Promise<Object>} Upload response from Cloudinary
+ */
+const directCloudinaryUpload = async (file, signedParams) => {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', signedParams.apiKey);
+        formData.append('timestamp', signedParams.timestamp);
+        formData.append('signature', signedParams.signature);
+        formData.append('folder', signedParams.folder);
+        
+        if (signedParams.format) {
+            formData.append('format', signedParams.format);
+        }
+        
+        const uploadUrl = `https://api.cloudinary.com/v1_1/${signedParams.cloudName}/${signedParams.resourceType}/upload`;
+        
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            body: formData,
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Upload failed with status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error in direct Cloudinary upload:', error);
+        throw error;
+    }
+};
+
 const getOrSaveFromStorage = ({ key, value, get }) => {
     if (get)
       return localStorage.getItem(key)
@@ -34,7 +71,7 @@ const getOrSaveFromStorage = ({ key, value, get }) => {
     else localStorage.setItem(key, JSON.stringify(value));
   };
 
-  export {fileFormat,transformImage,getOrSaveFromStorage}
+  export {fileFormat, transformImage, getOrSaveFromStorage, directCloudinaryUpload}
 
  export const formatLastActive = (date) => {
     if (!date) return '';

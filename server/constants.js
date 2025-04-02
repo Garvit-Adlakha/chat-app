@@ -1,4 +1,4 @@
-export const DB_Name="WhisperWire"
+export const DB_Name="chat-app"
 export const ALERT="ALERT"
 export const REFETCH_CHATS="REFETCH_CHATS"
 export const NEW_MESSAGE_ALERT="NEW_MESSAGE_ALERT"

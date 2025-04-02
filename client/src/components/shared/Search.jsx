@@ -9,6 +9,7 @@ export const Search = ({ placeholder, value, onChange }) => (
             type="text"
             className="bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 transition-colors"
             placeholder={placeholder}
+            name='search'
             value={value}
             onChange={onChange}
         />

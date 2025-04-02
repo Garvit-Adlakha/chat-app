@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef } from 'react'
 import { transformImage } from '../../lib/feature'
 import { 
     IconFileHorizontalFilled, 
@@ -100,21 +100,15 @@ const CustomVideoPlayer = ({ url }) => {
     const containerRef = useRef(null);
 
     const togglePlay = () => {
-        if (!videoRef.current) return;
-        
         if (isPlaying) {
             videoRef.current.pause();
         } else {
-            videoRef.current.play().catch(err => {
-                console.error("Error playing video:", err);
-            });
+            videoRef.current.play();
         }
         setIsPlaying(!isPlaying);
     };
 
     const handleProgress = (e) => {
-        if (!videoRef.current) return;
-        
         const video = videoRef.current;
         const progressBar = e.currentTarget;
         const rect = progressBar.getBoundingClientRect();
@@ -123,22 +117,16 @@ const CustomVideoPlayer = ({ url }) => {
     };
 
     const handleTimeUpdate = () => {
-        if (!videoRef.current) return;
-        
         const video = videoRef.current;
         setProgress((video.currentTime / video.duration) * 100);
     };
 
     const toggleMute = () => {
-        if (!videoRef.current) return;
-        
         videoRef.current.muted = !isMuted;
         setIsMuted(!isMuted);
     };
 
     const handleVolumeChange = (e) => {
-        if (!videoRef.current) return;
-        
         const value = parseFloat(e.target.value);
         videoRef.current.volume = value;
         setVolume(value);
@@ -146,50 +134,16 @@ const CustomVideoPlayer = ({ url }) => {
     };
 
     const toggleFullscreen = () => {
-        if (!containerRef.current) return;
-        
-        if (!isFullscreen) {
-            if (containerRef.current.requestFullscreen) {
-                containerRef.current.requestFullscreen();
-            } else if (containerRef.current.webkitRequestFullscreen) {
-                containerRef.current.webkitRequestFullscreen();
-            } else if (containerRef.current.msRequestFullscreen) {
-                containerRef.current.msRequestFullscreen();
-            }
+        if (!document.fullscreenElement) {
+            containerRef.current.requestFullscreen();
+            setIsFullscreen(true);
         } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
+            document.exitFullscreen();
+            setIsFullscreen(false);
         }
     };
 
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullscreen(
-                document.fullscreenElement === containerRef.current ||
-                document.webkitFullscreenElement === containerRef.current ||
-                document.msFullscreenElement === containerRef.current
-            );
-        };
-
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('msfullscreenchange', handleFullscreenChange);
-
-        return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('msfullscreenchange', handleFullscreenChange);
-        };
-    }, []);
-
     const skip = (seconds) => {
-        if (!videoRef.current) return;
-        
         videoRef.current.currentTime += seconds;
     };
 
@@ -287,8 +241,6 @@ const AudioPlayer = ({ url }) => {
         e.preventDefault();
         e.stopPropagation();
         
-        if (!audioRef.current) return;
-        
         if (isPlaying) {
             audioRef.current.pause();
         } else {
@@ -298,23 +250,17 @@ const AudioPlayer = ({ url }) => {
     };
 
     const handleProgress = (e) => {
-        if (!audioRef.current || !progressBarRef.current) return;
-        
         e.preventDefault();
         e.stopPropagation();
         const rect = progressBarRef.current.getBoundingClientRect();
         const pos = (e.clientX - rect.left) / rect.width;
         const newTime = pos * duration;
-        if (!isNaN(newTime) && isFinite(newTime)) {
-            audioRef.current.currentTime = newTime;
-            setProgress(pos * 100);
-            setCurrentTime(newTime);
-        }
+        audioRef.current.currentTime = newTime;
+        setProgress(pos * 100);
+        setCurrentTime(newTime);
     };
 
     const handleTimeUpdate = () => {
-        if (!audioRef.current) return;
-        
         const current = audioRef.current.currentTime;
         const duration = audioRef.current.duration;
         setCurrentTime(current);
@@ -322,8 +268,6 @@ const AudioPlayer = ({ url }) => {
     };
 
     const handleLoadedMetadata = () => {
-        if (!audioRef.current) return;
-        
         setDuration(audioRef.current.duration);
     };
 

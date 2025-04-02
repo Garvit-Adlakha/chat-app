@@ -49,6 +49,7 @@ const io = new Server(server, {
     cookie: {
         name: 'token',
         httpOnly: true,
+        partitioned: true,
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         secure: process.env.NODE_ENV === 'production',
     },
@@ -131,6 +132,8 @@ app.use(cors(corsOptions));
 //api routes
 import userRoutes from './routes/user.route.js';
 import chatRoutes from './routes/chat.route.js';
+import uploadRoutes from './routes/uploadRoutes.js'; // Add this import
+
 import { TYPING, USER_STATUS_CHANGE } from './constants.js';
 import { getSockets } from './utils/sockets.js';
 import { Message } from './models/message.model.js';
@@ -138,6 +141,7 @@ import { User } from './models/user.model.js';
 import { Chat } from './models/chat.model.js';
 app.use('/api/v1/user', userRoutes)
 app.use('/api/v1/chat', chatRoutes)
+app.use('/api/v1/upload', uploadRoutes) // Add this line to register the new routes
 
 
 

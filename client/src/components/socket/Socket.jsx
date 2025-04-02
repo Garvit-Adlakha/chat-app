@@ -1,33 +1,26 @@
 import io from 'socket.io-client';
 import { create } from 'zustand';
 
-// Enhanced function to get auth token from multiple sources
+// Get token from cookies, localStorage or both
+// Dynamically fetch token before each connection attempt
 const getAuthToken = () => {
-  // Try cookie first
-  const cookies = document.cookie.split('; ');
-  const tokenCookie = cookies.find(c => c.startsWith('token='));
-  const cookieToken = tokenCookie ? tokenCookie.split('=')[1] : null;
-  
-  // Fall back to localStorage if cookie is not available
-  const localStorageToken = localStorage.getItem('authToken');
-  
-  // Return the first available token
-  return cookieToken || localStorageToken || null;
+    const cookies = document.cookie.split('; ');
+    const tokenCookie = cookies.find(c => c.startsWith('token='));
+    return tokenCookie ? tokenCookie.split('=')[1] : null;
 };
 
-// Create socket instance with better reconnection and authentication settings
-const createSocket = () => io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
-  autoConnect: false,
+// Make sure we're using the correct server URL and port
+const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const createSocket = () => io(serverUrl, {
+  autoConnect: false, 
   transports: ['websocket', 'polling'],
   withCredentials: true,
-  reconnection: true,
-  reconnectionAttempts: 10,
+  reconnectionAttempts: 5,
   reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
-  timeout: 20000,
+  timeout: 10000, // Increase timeout for slower connections
   auth: (cb) => {
-    const token = getAuthToken();
-    cb({ token });
+    cb({ token: getAuthToken() }); // Get token dynamically at connection time
   }
 });
 
@@ -39,35 +32,25 @@ const useSocketStore = create((set, get) => {
     isConnected: false,
     lastMessage: null,
     connectionError: null,
-    reconnectAttempts: 0,
 
     connect: () => {
       if (!get().isConnected) {
-        // Clear previous listeners
+        // Clear previous listeners to avoid duplicates
         socket.off('connect');
         socket.off('disconnect');
         socket.off('connect_error');
-        socket.off('reconnect_attempt');
-        socket.off('reconnect');
-        socket.off('reconnect_error');
         
         socket.on('connect', () => {
-          console.log('Socket connected!', socket.id);
+          console.log('Socket connected!');
           set({ 
             isConnected: true,
-            connectionError: null,
-            reconnectAttempts: 0
+            connectionError: null
           });
         });
         
         socket.on('disconnect', (reason) => {
           console.log('Socket disconnected:', reason);
           set({ isConnected: false });
-          
-          // If the server closed the connection, attempt to reconnect automatically
-          if (reason === 'io server disconnect') {
-            socket.connect();
-          }
         });
         
         socket.on('connect_error', (error) => {
@@ -78,25 +61,7 @@ const useSocketStore = create((set, get) => {
           });
         });
         
-        socket.on('reconnect_attempt', (attemptNumber) => {
-          console.log(`Socket reconnection attempt #${attemptNumber}`);
-          set({ reconnectAttempts: attemptNumber });
-        });
-        
-        socket.on('reconnect', (attemptNumber) => {
-          console.log(`Socket reconnected after ${attemptNumber} attempts`);
-          set({ 
-            isConnected: true,
-            connectionError: null,
-            reconnectAttempts: 0
-          });
-        });
-        
-        socket.on('reconnect_error', (error) => {
-          console.error('Socket reconnection error:', error.message);
-        });
-        
-        // Attempt to connect
+        // Now attempt to connect
         socket.connect();
       }
     },
@@ -105,14 +70,10 @@ const useSocketStore = create((set, get) => {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('connect_error');
-      socket.off('reconnect_attempt');
-      socket.off('reconnect');
-      socket.off('reconnect_error');
       socket.disconnect();
       set({ 
         isConnected: false,
-        connectionError: null,
-        reconnectAttempts: 0
+        connectionError: null
       });
     },
     

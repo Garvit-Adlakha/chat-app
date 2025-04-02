@@ -49,7 +49,7 @@ export const isAuthenticated = catchAsync(async (req, res, next) => {
 });
 
 // Socket authentication middleware - also update to check multiple token sources
-export const socketAuthenticator = async (err, socket, next) => {
+export const socketAuthenticator = async (socket, next) => {
   try {
     let token = null;
     
@@ -78,7 +78,7 @@ export const socketAuthenticator = async (err, socket, next) => {
     try {
       const decodedData = jwt.verify(token, process.env.JWT_SECRET);
       
-      if (!decodedData.userId) {
+      if (!decodedData || !decodedData.userId) {
         console.error("Invalid token - missing userId");
         return next(new Error("Invalid authentication token"));
       }

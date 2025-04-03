@@ -25,6 +25,7 @@ const LoginPage = () => {
       queryClient.setQueryData(["user"], data.user);
       queryClient.invalidateQueries(["user"]).then(() => {
         toast.success(data.message || "Logged in with Google successfully");
+        setIsLoading(false);
         navigate("/chat");
       });
     },
@@ -35,7 +36,11 @@ const LoginPage = () => {
 
   // Handle Google Sign-In success
   const handleGoogleSuccess = (credential) => {
+    setIsLoading(true);
+    setError("");
+    // Call the Google authentication mutation
     googleAuthMutation.mutate(credential);
+    // Send the credential to the server for verification
   };
 
   // Handle Google Sign-In error

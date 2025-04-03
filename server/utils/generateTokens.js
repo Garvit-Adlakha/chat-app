@@ -11,17 +11,15 @@ import jwt from 'jsonwebtoken';
  */
 export const generateToken = (res, user, message, statusCode = 200) => {
     try {
-        // Check if headers already sent to avoid duplicate cookies
         if (res.headersSent) {
             console.warn('Headers already sent, cannot set token cookie');
             return;
         }
 
-        // Generate JWT token with more secure payload
         const token = jwt.sign(
             { 
                 userId: user._id,
-                version: user.passwordChangedAt || Date.now() // Add version for invalidation
+                version: user.passwordChangedAt || Date.now()
             },
             process.env.JWT_SECRET,
             { 
@@ -31,39 +29,17 @@ export const generateToken = (res, user, message, statusCode = 200) => {
             }
         );
 
-        // Determine if token cookie is already being set - improved check
-        const existingCookies = res.getHeader('Set-Cookie') || [];
-        const tokenCookieExists = Array.isArray(existingCookies) 
-            ? existingCookies.some(cookie => cookie.startsWith('token='))
-            : typeof existingCookies === 'string' && existingCookies.startsWith('token=');
+        const cookieOptions = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+            maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 15 * 24 * 60 * 60 * 1000, // 15 days
+            path: "/"
+        };
+        
+        res.cookie('token', token, cookieOptions);
 
-        // Only set cookie if not already set
-        if (!tokenCookieExists) {
-            const cookieOptions = {
-                httpOnly: true,
-                sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'lax',
-                secure: process.env.NODE_ENV === 'production',
-                maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 15 * 24 * 60 * 60 * 1000, // 15 days
-                path: "/"
-            };
-            
-            res.cookie('token', token, cookieOptions);
-            
-            // Consider setting a non-httpOnly cookie with minimal user info for client-side checks
-            if (process.env.ENABLE_CLIENT_COOKIE === 'true') {
-                res.cookie('user_session', JSON.stringify({ 
-                    authenticated: true, 
-                    userId: user._id.toString() 
-                }), {
-                    ...cookieOptions,
-                    httpOnly: false // Accessible to client JavaScript
-                });
-            }
-        } else {
-            console.log('Token cookie already exists, skipping duplicate');
-        }
-
-        // Create a sanitized user object
+        // Sanitized user object
         const sanitizedUser = {
             _id: user._id,
             name: user.name,
@@ -77,7 +53,6 @@ export const generateToken = (res, user, message, statusCode = 200) => {
             googleId: !!user.googleId
         };
 
-        // Send response without including token in body
         return res.status(statusCode).json({
             status: 'success',
             message,
@@ -85,7 +60,7 @@ export const generateToken = (res, user, message, statusCode = 200) => {
         });
     } catch (error) {
         console.error('Error generating token:', error);
-        throw new Error('Token generation failed');
+        throw error;
     }
 };
 

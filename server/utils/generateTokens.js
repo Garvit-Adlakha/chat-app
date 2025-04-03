@@ -31,11 +31,11 @@ export const generateToken = (res, user, message, statusCode = 200) => {
 
         const cookieOptions = {
             maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
-            sameSite: "None", // Required for cross-origin requests
+            sameSite: "none", // Required for cross-origin requests
             httpOnly: true,
             secure: true, // Required when sameSite is "none"
             domain: process.env.NODE_ENV === 'production' 
-                ? ".chat-app-q8uf.onrender.com"  // Your backend domain
+                ? "chat-app-q8uf.onrender.com"  // Your backend domain
                 : "localhost",
             path: "/" // Ensures cookie is available across all routes
         };
@@ -92,21 +92,16 @@ export const verifyToken = (token) => {
  * @param {object} res - Express response object
  */
 export const clearTokenCookie = (res) => {
-    res.cookie('token', '', {
+    const cookieOptions = {
         httpOnly: true,
         expires: new Date(0),
         path: '/',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        secure: process.env.NODE_ENV === 'production'
-    });
-    
-    if (process.env.ENABLE_CLIENT_COOKIE === 'true') {
-        res.cookie('user_session', '', {
-            httpOnly: false,
-            expires: new Date(0),
-            path: '/',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            secure: process.env.NODE_ENV === 'production'
-        });
-    }
+        sameSite: 'none',
+        secure: true,
+        domain: process.env.NODE_ENV === 'production' 
+            ? "chat-app-q8uf.onrender.com"  // Your backend domain
+            : 'localhost'
+    };
+
+    res.cookie('token', '', cookieOptions);
 };

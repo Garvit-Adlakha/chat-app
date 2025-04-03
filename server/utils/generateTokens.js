@@ -126,7 +126,7 @@ export const clearTokenCookie = (res) => {
             httpOnly: false,
             expires: new Date(0),
             path: '/',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'lax',
             secure: process.env.NODE_ENV === 'production'
         });
     }

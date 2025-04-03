@@ -67,7 +67,7 @@ const limiter = rateLimit({
 
 // Enhanced cookie parser options for modern browsers
 app.use(cookieParser(process.env.JWT_SECRET, {
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'lax',
   secure: process.env.NODE_ENV === 'production',
   httpOnly: true
 }));

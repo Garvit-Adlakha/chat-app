@@ -93,7 +93,8 @@ export const clearTokenCookie = (res) => {
         expires: new Date(0),
         path: '/',
         sameSite: 'none',
-        secure: process.env.NODE_ENV === 'production'
+        secure: process.env.NODE_ENV === 'production',
+        partitioned: true // Enables cross-site cookies in newer browsers
     };
 
     res.cookie('token', '', cookieOptions);

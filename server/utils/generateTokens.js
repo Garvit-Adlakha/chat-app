@@ -28,15 +28,14 @@ export const generateToken = (res, user, message, statusCode = 200) => {
                 issuer: process.env.JWT_ISSUER || 'chat-app'
             }
         );
-
         const cookieOptions = {
             maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
-            sameSite: "none",
+            sameSite: "none", // Required for cross-origin requests
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // Use secure cookies only in production
-            path: "/"
+            secure: process.env.NODE_ENV === "production", // Secure in production
+            path: "/",
+            partitioned: true // Enables cross-site cookies in newer browsers
         };
-        
         
         res.cookie('token', token, cookieOptions);
 

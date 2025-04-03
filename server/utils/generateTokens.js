@@ -21,28 +21,15 @@ export const generateToken = (res, user, message, statusCode = 200) => {
         const token = jwt.sign(
             { 
                 userId: user._id,
-                version: user.passwordChangedAt || Date.now(),
-                // Add role if you have user roles
-                role: user.role || 'user'
+                version: user.passwordChangedAt || Date.now() // Add version for invalidation
             },
             process.env.JWT_SECRET,
             { 
                 expiresIn: process.env.JWT_EXPIRY || '15d',
-                audience: process.env.JWT_AUDIENCE || 'whisperwire-users',  // who the token is for
-                issuer: process.env.JWT_ISSUER || 'whisperwire-api'        // who created the token
+                audience: process.env.JWT_AUDIENCE || 'chat-app-users',
+                issuer: process.env.JWT_ISSUER || 'chat-app'
             }
         );
-
-        const cookieOptions = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 15 * 24 * 60 * 60 * 1000,
-            path: "/",
-            domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
-        };
-        
-        res.cookie('token', token, cookieOptions);
 
         // Determine if token cookie is already being set - improved check
         const existingCookies = res.getHeader('Set-Cookie') || [];
@@ -54,7 +41,7 @@ export const generateToken = (res, user, message, statusCode = 200) => {
         if (!tokenCookieExists) {
             const cookieOptions = {
                 httpOnly: true,
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'lax',
                 secure: process.env.NODE_ENV === 'production',
                 maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 15 * 24 * 60 * 60 * 1000, // 15 days
                 path: "/"

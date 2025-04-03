@@ -11,10 +11,6 @@ import connectDB from './database/db.js';
 import { Server } from 'socket.io';
 import { v4 as uuid } from 'uuid';
 import { socketAuthenticator } from './middlewares/auth.middleware.js';
-import validateEnvironmentVariables from './utils/validateEnv.js';
-
-// Validate environment variables before doing anything else
-validateEnvironmentVariables();
 
 dotenv.config();
 await connectDB();
@@ -52,7 +48,7 @@ const limiter = rateLimit({
 });
 
 // Enhanced cookie parser options with security config
-app.use(cookieParser(process.env.COOKIE_SECRET));
+app.use(cookieParser());
 
 // Middleware with improved security configuration
 app.set('io', io);

@@ -31,27 +31,17 @@ export const generateToken = (res, user, message, statusCode = 200) => {
 
         const cookieOptions = {
             maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
-            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+            sameSite: "None", // Required for cross-origin requests
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            path: '/',
-            // Remove domain setting to let browser handle it automatically
-            // This fixes cross-domain cookie issues in production
+            secure: true, // Required when sameSite is "none"
+            domain: process.env.NODE_ENV === 'production' 
+                ? ".chat-app-q8uf.onrender.com"  // Your backend domain
+                : "localhost",
+            path: "/" // Ensures cookie is available across all routes
         };
-
-        // Set both the HTTP-only auth token and a client-accessible session flag
-        res.cookie('token', token, cookieOptions);
+          
         
-        // Add a non-httpOnly cookie for client-side auth checks
-        if (process.env.NODE_ENV === 'production') {
-            res.cookie('session_active', '1', {
-                maxAge: 15 * 24 * 60 * 60 * 1000,
-                sameSite: 'None',
-                httpOnly: false,
-                secure: true,
-                path: '/'
-            });
-        }
+        res.cookie('token', token, cookieOptions);
 
         // Sanitized user object
         const sanitizedUser = {
@@ -102,18 +92,12 @@ export const verifyToken = (token) => {
  * @param {object} res - Express response object
  */
 export const clearTokenCookie = (res) => {
-    const options = {
+    res.cookie('token', '', {
         httpOnly: true,
         expires: new Date(0),
         path: '/',
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         secure: process.env.NODE_ENV === 'production'
-    };
-
-    res.cookie('token', '', options);
-    res.cookie('session_active', '', {
-        ...options,
-        httpOnly: false
     });
     
     if (process.env.ENABLE_CLIENT_COOKIE === 'true') {

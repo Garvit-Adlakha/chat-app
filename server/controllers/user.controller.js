@@ -1,6 +1,6 @@
 import { catchAsync } from "../middlewares/error.middleware.js";
 import { User } from "../models/user.model.js";
-import { generateToken } from "../utils/generateTokens.js";
+import { generateToken, clearTokenCookie } from "../utils/generateTokens.js"; // Missing import
 import { AppError } from "../middlewares/error.middleware.js";
 import { Request } from "../models/request.model.js";
 import { Chat } from "../models/chat.model.js";
@@ -159,15 +159,8 @@ export const updateUser = catchAsync(async (req, res, next) => {
     generateToken(res, updatedUser, "Profile updated successfully", 200);
 });
 export const signout = catchAsync(async (req, res, next) => {
-    const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        path: "/"
-    };
-
-    // Clear the token cookie
-    res.clearCookie('token', cookieOptions);
+    // Use the centralized clearTokenCookie utility instead of direct cookie manipulation
+    clearTokenCookie(res);
     
     res.status(200).json({
         status: "success",

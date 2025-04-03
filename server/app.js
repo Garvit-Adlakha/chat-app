@@ -22,31 +22,15 @@ const Port = process.env.PORT || 5000;
 const app = express();
 const server = createServer(app);
 const corsOptions = {
-    origin: function(origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "http://localhost:4173", 
-        process.env.CLIENT_URL,
-        "https://whisperwire-main.vercel.app"
-      ].filter(Boolean);
-      
-      // Allow requests with no origin (like mobile apps, React Native, or curl requests)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`Blocked request from unauthorized origin: ${origin}`);
-        callback(new Error('CORS policy violation'));
-      }
-    },
-    credentials: true, // Important for cookies
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-    exposedHeaders: ["Authorization"],
-    maxAge: 86400, // Cache preflight response for 24 hours
-    preflightContinue: false,
-    optionsSuccessStatus: 204
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:4173",
+      process.env.CLIENT_URL,
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD", "CONNECT", "TRACE"],
+    credentials: true,
   };
-
+  
 
 const io = new Server(server, {
     cors: corsOptions, // Use the same CORS options
@@ -66,11 +50,7 @@ const limiter = rateLimit({
 });
 
 // Enhanced cookie parser options for modern browsers
-app.use(cookieParser(process.env.JWT_SECRET, {
-  sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-  secure: process.env.NODE_ENV === 'production',
-  httpOnly: true
-}));
+app.use(cookieParser());
 
 //middleware
 

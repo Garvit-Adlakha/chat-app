@@ -60,25 +60,31 @@ export const registerUser = catchAsync(async (req, res, next) => {
 });
 
 export const loginUser = catchAsync(async (req, res, next) => {
+    console.log('Login attempt for:', req.body.email);
+    
     const { email, password } = req.body;
 
-    // Basic validation
+    // Check if email and password are provided
     if (!email || !password) {
-        throw new AppError("Please provide email and password", 400);
+        return next(new AppError("Please provide email and password", 400));
     }
 
-    // Check for user
+    // Find user by email
     const user = await User.findOne({ email }).select("+password");
 
+    // Check if user exists and password is correct
     if (!user || !(await user.comparePassword(password))) {
-        throw new AppError("Invalid credentials", 401);
+        return next(new AppError("Invalid credentials", 401));
     }
 
+    console.log('Login successful for:', user.email);
+    
     // Update last active status
-    await user.updateLastActive();
+    user.lastActive = Date.now();
+    await user.save({ validateBeforeSave: false });
 
-    // Generate token and send response
-    generateToken(res, user, "Welcome Back", 200);
+    // Generate token and send response - use one function call only
+    generateToken(res, user, "Logged in successfully", 200);
 })
 
 export const getProfile = catchAsync(async (req, res, next) => {
@@ -345,39 +351,44 @@ export const getMyFriends = catchAsync(async (req, res, next) => {
 });
 
 export const googleAuth = catchAsync(async (req, res, next) => {
-    const { token } = req.body; // ID token from Google
+    console.log('Google auth attempt');
+    
+    const { token } = req.body;
 
     if (!token) {
-        throw new AppError("Google token is required", 400);
+        return next(new AppError("Google token is required", 400));
     }
 
     try {
-        // Use the enhanced verification function instead of direct client verification
+        // Verify Google token
         const payload = await verifyGoogleToken(token);
+        console.log('Google token verified for:', payload.email);
 
-        // Check if user exists with this Google ID or email
+        // Find or create user
         let user = await User.findOne({
-            $or: [
-                { googleId: payload.sub },
-                { email: payload.email }
-            ]
+            $or: [{ googleId: payload.sub }, { email: payload.email }]
         });
 
+        let isNewUser = false;
+        
         if (!user) {
-            // Create a new user
+            // Create new user with Google data
+            isNewUser = true;
+            console.log('Creating new user from Google login:', payload.email);
+            
             user = await User.create({
                 name: payload.name,
                 email: payload.email,
-                username: payload.email.split('@')[0] + Math.floor(Math.random() * 10000), // Generate a username
+                username: payload.email.split('@')[0] + Math.floor(Math.random() * 10000),
                 googleId: payload.sub,
-                avatar: {
-                    url: payload.picture
-                },
-                password: crypto.randomBytes(16).toString('hex'), // Random password for Google users
+                avatar: { url: payload.picture },
+                password: crypto.randomBytes(16).toString('hex'),
                 isEmailVerified: payload.email_verified
             });
         } else if (!user.googleId) {
-            // If user exists with same email but not linked to Google
+            // Update existing user with Google ID if not already set
+            console.log('Linking Google ID to existing user:', user.email);
+            
             user.googleId = payload.sub;
             if (payload.picture && (!user.avatar || !user.avatar.url)) {
                 user.avatar = { url: payload.picture };
@@ -385,13 +396,11 @@ export const googleAuth = catchAsync(async (req, res, next) => {
             await user.save();
         }
 
-        // Update last active status
-        await user.updateLastActive();
-
         // Generate token and send response
-        generateToken(res, user, user.isNewUser ? "Account created successfully" : "Welcome back", 200);
+        console.log('Generating token for Google auth user:', user.email);
+        generateToken(res, user, isNewUser ? "Account created successfully" : "Welcome back", 200);
     } catch (error) {
-        // Our verifyGoogleToken already wraps and enhances the error messages
-        throw new AppError(error.message, 401);
+        console.error('Google auth error:', error);
+        return next(new AppError(error.message, 401));
     }
 });

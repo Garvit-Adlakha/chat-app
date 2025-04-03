@@ -19,28 +19,30 @@ const LoginPage = () => {
   // Google Authentication Mutation
   const googleAuthMutation = useMutation({
     mutationFn: async (idToken) => {
+      // Make sure we only call the API once
+      if (isLoading) return;
+      setIsLoading(true);
       return userService.googleAuth(idToken);
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["user"], data.user);
-      queryClient.invalidateQueries(["user"]).then(() => {
-        toast.success(data.message || "Logged in with Google successfully");
-        setIsLoading(false);
-        navigate("/chat");
-      });
+      queryClient.invalidateQueries(["user"]);
+      toast.success(data.message || "Logged in with Google successfully");
+      setIsLoading(false);
+      navigate("/chat");
     },
     onError: (error) => {
       setError(error.message || "Google authentication failed");
+      setIsLoading(false);
     },
   });
 
-  // Handle Google Sign-In success
+  // Handle Google Sign-In success - only called once
   const handleGoogleSuccess = (credential) => {
-    setIsLoading(true);
+    if (isLoading) return; // Prevent duplicate calls
     setError("");
     // Call the Google authentication mutation
     googleAuthMutation.mutate(credential);
-    // Send the credential to the server for verification
   };
 
   // Handle Google Sign-In error

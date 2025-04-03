@@ -11,6 +11,12 @@ import jwt from 'jsonwebtoken';
  */
 export const generateToken = (res, user, message, statusCode = 200) => {
     try {
+        // Check if headers already sent to avoid duplicate cookies
+        if (res.headersSent) {
+            console.warn('Headers already sent, cannot set token cookie');
+            return;
+        }
+
         // Generate JWT token
         const token = jwt.sign(
             { userId: user._id },
@@ -18,19 +24,28 @@ export const generateToken = (res, user, message, statusCode = 200) => {
             { expiresIn: process.env.JWT_EXPIRY || '15d' }
         );
 
-        // Update cookie options for better security and cross-browser compatibility
-        const cookieOptions = {
-            httpOnly: true,
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-            path: "/",
-        };
+        // Determine if token cookie is already being set
+        const existingCookies = res.getHeader('Set-Cookie') || [];
+        const tokenCookieExists = Array.isArray(existingCookies) 
+            ? existingCookies.some(cookie => cookie.startsWith('token='))
+            : existingCookies.startsWith('token=');
 
-        // Set cookie
-        res.cookie('token', token, cookieOptions);
+        // Only set cookie if not already set
+        if (!tokenCookieExists) {
+            const cookieOptions = {
+                httpOnly: true,
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
+                path: "/"
+            };
+            
+            res.cookie('token', token, cookieOptions);
+        } else {
+            console.log('Token cookie already exists, skipping duplicate');
+        }
 
-        // Create a sanitized user object without sensitive data
+        // Create a sanitized user object
         const sanitizedUser = {
             _id: user._id,
             name: user.name,
@@ -41,21 +56,18 @@ export const generateToken = (res, user, message, statusCode = 200) => {
             isOnline: user.isOnline,
             lastActive: user.lastActive,
             isEmailVerified: user.isEmailVerified || false,
-            googleId: !!user.googleId, // Just indicate if it exists, don't send the actual ID
-            createdAt: user.createdAt,
+            googleId: !!user.googleId
         };
 
-        // Send response (without including the token in the body for better security)
-        return res
-            .status(statusCode)
-            .json({
-                status: 'success',
-                message,
-                user: sanitizedUser
-            });
+        // Send response without including token in body
+        return res.status(statusCode).json({
+            status: 'success',
+            message,
+            user: sanitizedUser
+        });
     } catch (error) {
-        console.error('Error generating token:', error.message);
-        throw new Error('Token generation failed: ' + error.message);
+        console.error('Error generating token:', error);
+        throw new Error('Token generation failed');
     }
 };
 

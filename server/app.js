@@ -43,28 +43,53 @@ const io = new Server(server, {
 //rateLimit configuration
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10000, // limit each IP to 1000 requests per windowMs
+    max: 1000, // Reduced from 10000 to 1000 requests per window
     message: 'Too many requests from this IP, please try again after 15 minutes',
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: false, // Count successful requests too
+    keyGenerator: (req) => req.ip // Use IP for rate limiting
 });
 
-// Enhanced cookie parser options for modern browsers
-app.use(cookieParser());
+// Enhanced cookie parser options with security config
+app.use(cookieParser(process.env.COOKIE_SECRET));
 
-//middleware
+// Middleware with improved security configuration
+app.set('io', io);
 
-app.set('io', io)
-app.use(helmet())
-app.use(hpp())
-app.use("/api", limiter)
+// Configure Helmet with strict security headers
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "wss:", "https:"],
+        }
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+app.use(hpp({
+    whitelist: [] // Specify parameters that are allowed to be duplicated
+}));
+
+// Apply rate limiting to all API routes
+app.use("/api", limiter);
+
+// Request body parsing with consistent limits and sanitization
+const payloadLimit = '5mb'; // Reduced from 10kb for file uploads
 app.use(express.json({
-    limit: '10kb'
-}))
+    limit: payloadLimit,
+    verify: (req, res, buf) => { req.rawBody = buf }, // Store raw body for webhook verification
+}));
+
 app.use(express.urlencoded({
     extended: true,
-    limit: '10kb'
-}))
+    limit: payloadLimit,
+}));
 
 // Fix for CORB issues with external images
 app.use((req, res, next) => {

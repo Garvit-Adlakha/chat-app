@@ -30,12 +30,15 @@ export const generateToken = (res, user, message, statusCode = 200) => {
         );
 
         const cookieOptions = {
-            maxAge: 15 * 24 * 60 * 60 * 1000,
-            sameSite: "none",
+            maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
+            sameSite: "none", // Required for cross-origin requests
             httpOnly: true,
-            secure: true,
-            domain:"chat-app-q8uf.onrender.com"
-          };
+            secure: true, // Required when sameSite is "none"
+            domain: process.env.NODE_ENV === 'production' 
+                ? "chat-app-q8uf.onrender.com"  // Your backend domain
+                : "localhost",
+            path: "/" // Ensures cookie is available across all routes
+        };
           
         
         res.cookie('token', token, cookieOptions);

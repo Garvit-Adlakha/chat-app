@@ -7,10 +7,7 @@ const axiosInstance = axios.create({
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-  },
-  // Ensure cookies are sent with cross-origin requests
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
+  }
 });
 
 // // Add an interceptor to handle 401 unauthorized errors

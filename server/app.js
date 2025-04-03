@@ -21,39 +21,39 @@ await connectDB();
 const Port = process.env.PORT || 5000;
 const app = express();
 const server = createServer(app);
+const corsOptions = {
+    origin: function(origin, callback) {
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "http://localhost:4173", 
+        process.env.CLIENT_URL,
+        "https://whisperwire-main.vercel.app"
+      ].filter(Boolean);
+      
+      // Allow requests with no origin (like mobile apps, React Native, or curl requests)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`Blocked request from unauthorized origin: ${origin}`);
+        callback(new Error('CORS policy violation'));
+      }
+    },
+    credentials: true, // Important for cookies
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    exposedHeaders: ["Authorization"],
+    maxAge: 86400, // Cache preflight response for 24 hours
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+  };
+
+
 const io = new Server(server, {
-    cors: {
-        // Allow both specific origins and handle null origin (for file:// protocol)
-        origin: function(origin, callback) {
-            const allowedOrigins = [
-                "http://localhost:3000",
-                "http://localhost:4173",
-                process.env.CLIENT_URL,
-                "https://whisperwire-main.vercel.app"
-            ].filter(Boolean);
-            
-            // Allow requests with no origin (like mobile apps or curl requests)
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                console.log("Blocked origin:", origin);
-                callback(null, false);
-            }
-        },
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-        allowedHeaders: ["Content-Type", "Authorization", "Accept"]
-    },
+    cors: corsOptions, // Use the same CORS options
     transports: ['websocket', 'polling'],
-    pingTimeout: 60000, // Increase ping timeout to 60 seconds
-    pingInterval: 25000, // Ping every 25 seconds
-    cookie: {
-        name: 'token',
-        httpOnly: true,
-        partitioned: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        secure: process.env.NODE_ENV === 'production',
-    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    // Remove the cookie configuration as we're using HTTP-only cookies
 });
 
 //rateLimit configuration
@@ -98,31 +98,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Improved CORS configuration with explicit support for production domains
-const corsOptions = {
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      "http://localhost:3000",
-      "http://localhost:4173", 
-      process.env.CLIENT_URL,
-      "https://whisperwire-main.vercel.app"
-    ].filter(Boolean);
-    
-    // Allow requests with no origin (like mobile apps, React Native, or curl requests)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`Blocked request from unauthorized origin: ${origin}`);
-      callback(new Error('CORS policy violation'));
-    }
-  },
-  credentials: true, // Important for cookies
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-  allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-  exposedHeaders: ["Authorization"],
-  maxAge: 86400, // Cache preflight response for 24 hours
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
+
 
 // Apply CORS early in the middleware chain
 app.use(cors(corsOptions));

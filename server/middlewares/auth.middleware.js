@@ -7,50 +7,42 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const isAuthenticated = catchAsync(async (req, res, next) => {
-  try {
-    // Focus primarily on the cookie for web applications
-    const token = req.cookies?.token;
+    // Only check for token in cookies
+    const token = req.cookies.token;
     
     if (!token) {
-      return next(new AppError("Authentication required. Please log in to access this resource.", 401));
+        return next(new AppError("You are not logged in. Please log in to get access.", 401));
     }
 
-    // Verify token
-    let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (jwtError) {
-      if (jwtError.name === "JsonWebTokenError") {
-        return next(new AppError("Invalid token. Please log in again.", 401));
-      }
-      if (jwtError.name === "TokenExpiredError") {
-        return next(new AppError("Your session has expired. Please log in again.", 401));
-      }
-      throw jwtError;
+        // Verify token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // Get user
+        const user = await User.findById(decoded.userId);
+
+        if (!user) {
+            return next(new AppError("User not found", 404));
+        }
+
+        // Store user info in request
+        req.user = user;
+        req.id = user._id;
+
+        // Update last active status without blocking
+        User.findByIdAndUpdate(req.id, { lastActive: Date.now() })
+            .catch(err => console.error("Failed to update last active:", err));
+
+        next();
+    } catch (error) {
+        if (error.name === "JsonWebTokenError") {
+            return next(new AppError("Invalid token. Please log in again.", 401));
+        }
+        if (error.name === "TokenExpiredError") {
+            return next(new AppError("Your token has expired. Please log in again.", 401));
+        }
+        return next(error);
     }
-    
-    // Set user ID in request
-    req.id = decoded.userId;
-    
-    // Get user
-    const user = await User.findById(decoded.userId);
-
-    if (!user) {
-      return next(new AppError("The user associated with this token no longer exists.", 401));
-    }
-
-    // Update last active status without awaiting
-    User.findByIdAndUpdate(user._id, { lastActive: Date.now() }).catch(err => 
-      console.error("Failed to update last active:", err)
-    );
-
-    // Attach the user object to the request for convenience
-    req.user = user;
-
-    next();
-  } catch (error) {
-    return next(error);
-  }
 });
 
 export const socketAuthenticator = async (err, socket, next) => {

@@ -28,7 +28,8 @@ const io = new Server(server, {
             const allowedOrigins = [
                 "http://localhost:3000",
                 "http://localhost:4173",
-                process.env.CLIENT_URL
+                process.env.CLIENT_URL,
+                "https://whisperwire-main.vercel.app"
             ].filter(Boolean);
             
             // Allow requests with no origin (like mobile apps or curl requests)
@@ -96,13 +97,14 @@ if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'))
 }
 
-// Improve CORS configuration
+// Improved CORS configuration with explicit support for production domains
 const corsOptions = {
   origin: function(origin, callback) {
     const allowedOrigins = [
       "http://localhost:3000",
       "http://localhost:4173", 
-      process.env.CLIENT_URL
+      process.env.CLIENT_URL,
+      "https://whisperwire-main.vercel.app"
     ].filter(Boolean);
     
     // Allow requests with no origin (like mobile apps, React Native, or curl requests)
@@ -118,10 +120,15 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization", "Accept"],
   exposedHeaders: ["Authorization"],
   maxAge: 86400, // Cache preflight response for 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 // Apply CORS early in the middleware chain
 app.use(cors(corsOptions));
+
+// Handle OPTIONS requests explicitly
+app.options("*", cors(corsOptions));
 
 //api routes
 import userRoutes from './routes/user.route.js';

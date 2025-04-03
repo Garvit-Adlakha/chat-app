@@ -112,6 +112,7 @@ export const SideBar = () => {
                                     badge={item.badge}
                                     aria-label={item.label}
                                 />
+
                             ))}
                         </div>
                         <SettingsDropdown />
@@ -148,6 +149,8 @@ export const SideBar = () => {
                             aria-label={item.label}
                         />
                     ))}
+                    <SettingsDropdown size="sm" />
+                  
                 </MobileDock>
             </SidebarBody>
         </Sidebar>

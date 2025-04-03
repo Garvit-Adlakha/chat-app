@@ -57,8 +57,10 @@ const userService = {
   logout: async () => {
     try {
       const response = await axiosInstance.post('/user/signout');
+      console.log(response.data);
       return response.data;
     } catch (error) {
+      toast.error(error.response?.data?.message || "Logout failed");
       throw new Error(error.response?.data?.message || "Logout failed");
     }
   },

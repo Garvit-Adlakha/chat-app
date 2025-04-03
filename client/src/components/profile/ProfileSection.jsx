@@ -225,7 +225,7 @@ const ProfileSection = ({ userId = null }) => {
                     </div>
 
                     {/* Stats Section */}
-                    <div className="w-full space-y-3">
+                    <div className="w-full">
                         <div className="grid grid-cols-1 gap-3">
                             <div className="flex justify-between items-center p-4 bg-neutral-50 dark:bg-neutral-700/50 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors duration-200">
                                 <div className="flex items-center gap-3">
@@ -265,10 +265,10 @@ const ProfileSection = ({ userId = null }) => {
 
                     {/* Action Buttons */}
                     {isCurrentUser && (
-                        <div className="mt-8 flex gap-3 w-full">
+                        <div className="mt-3 md:mt-8 flex gap-3 w-full">
                             <button
                                 onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                                className={`flex-1 px-6 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${
+                                className={`flex-1 py-1 px-6  md:py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${
                                     isEditing
                                         ? 'bg-blue-500 text-white hover:bg-blue-600'
                                         : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-600'

@@ -4,6 +4,7 @@ import { IconCamera, IconHeartHandshake, IconShieldLock, IconUsers, IconBrandGoo
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import userService from "../service/userService";
 import toast from "react-hot-toast";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 // This component hides the file input but makes it accessible
 const VisuallyHiddenInput = ({ children, ...props }) => {
@@ -33,33 +34,6 @@ const SignupPage = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Add Google Sign-In SDK
-  useEffect(() => {
-    
-    // Load the Google Sign-In SDK
-    const loadGoogleScript = () => {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onerror = () => {
-        console.error('Failed to load Google Sign-In SDK');
-        setError('Google Sign-In is currently unavailable. Please use email registration instead.');
-      };
-      document.body.appendChild(script);
-      return script;
-    };
-
-    const script = loadGoogleScript();
-
-    return () => {
-      // Clean up the script when component unmounts
-      if (script && script.parentNode) {
-        document.body.removeChild(script);
-      }
-    };
-  }, []);
-
   const googleAuthMutation = useMutation({
     mutationFn: async (idToken) => {
       return userService.googleAuth(idToken);
@@ -78,102 +52,18 @@ const SignupPage = () => {
     }
   });
 
-  // Add a function to check if Google API is loaded
-  const isGoogleScriptLoaded = () => {
-    return typeof window !== 'undefined' && typeof window.google !== 'undefined';
-  };
-
-  // Google Sign-In initialization
-  const initializeGoogleSignIn = () => {
-    if (!isGoogleScriptLoaded()) {
-      console.error('Google API not loaded yet');
-      setError('Google Sign-In temporarily unavailable. Please try again later.');
-      setGoogleLoading(false);
-      return false;
-    }
-    
-    try {
-      // Validate Google Client ID before initialization
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      if (!clientId || clientId === '') {
-        console.error('Missing Google Client ID');
-        setError('Google Sign-In is not configured. Please try email registration instead.');
-        setGoogleLoading(false);
-        return false;
-      }
-      
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: handleGoogleCallback,
-        cancel_on_tap_outside: true,
-        error_callback: (error) => {
-          console.error('Google Sign-In Error:', error);
-          setError('Google Sign-In failed. Please try email registration instead.');
-          setGoogleLoading(false);
-        }
-      });
-      return true;
-    } catch (error) {
-      console.error('Google Sign-In initialization error:', error);
-      setError('Google Sign-In configuration error. Please try email registration instead.');
-      setGoogleLoading(false);
-      return false;
-    }
-  };
-
-  // Google Sign-In handler
-  const handleGoogleSignIn = () => {
+  // Handle Google Sign-In success
+  const handleGoogleSuccess = (credential) => {
     setGoogleLoading(true);
     setError("");
-    
-    if (!initializeGoogleSignIn()) {
-      return;
-    }
-    
-    try {
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed()) {
-          const reason = notification.getNotDisplayedReason();
-          console.error('Google Sign-In not displayed reason:', reason);
-          
-          if (reason === 'unregistered_origin') {
-            setError(
-              'This website is not registered with Google. Please try email registration instead.'
-            );
-         
-          } else if (reason === 'browser_not_supported') {
-            setError('Your browser does not support Google Sign-In. Please try email registration instead.');
-          } else if (reason === 'invalid_client') {
-            setError('Google Sign-In client configuration error. Please try email registration instead.');
-          } else {
-            setError(`Google Sign-In unavailable (${reason}). Please try email registration instead.`);
-          }
-          
-          setGoogleLoading(false);
-        } else if (notification.isSkippedMoment()) {
-          console.warn('Google Sign-In skipped reason:', notification.getSkippedReason());
-          setGoogleLoading(false);
-        } else if (notification.isDismissedMoment()) {
-          console.warn('Google Sign-In dismissed reason:', notification.getDismissedReason());
-          setGoogleLoading(false);
-        }
-      });
-    } catch (error) {
-      console.error('Google Sign-In prompt error:', error);
-      setError('Failed to show Google Sign-In. Please try email registration instead.');
-      setGoogleLoading(false);
-    }
+    // Call the Google authentication mutation
+    googleAuthMutation.mutate(credential);
   };
 
-  // Callback handler for Google sign-in
-  const handleGoogleCallback = (response) => {
-    if (response.credential) {
-      // Send the ID token to your server
-      googleAuthMutation.mutate(response.credential);
-    } else {
-      setGoogleLoading(false);
-      setError("Google sign-in failed. Please try again.");
-    }
+  // Handle Google Sign-In error
+  const handleGoogleError = (errorMessage) => {
+    setError(errorMessage);
+    setGoogleLoading(false);
   };
 
   const signupMutation = useMutation({
@@ -270,6 +160,17 @@ const SignupPage = () => {
       <div className="hero-content flex-col lg:flex-row animate-fadeIn gap-8 max-w-6xl">
         <div className="card bg-black/20 backdrop-blur-lg w-full max-w-md shrink-0 shadow-2xl transition-all duration-300 hover:shadow-3xl lg:w-1/2 border border-white/10">
           <div className="card-body animate-slideUp py-6">
+            <h1 className="text-3xl text-center mb-6 text-white font-bold">Create Account</h1>
+
+            {/* Google Sign-In Button */}
+            <div className="mb-6 bg-black">
+              <GoogleSignInButton 
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+              />
+            </div>
+            <div className="divider text-white text-sm opacity-60">or sign up with email</div>
+
             {error && (
               <div className="alert alert-error text-sm mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -448,19 +349,6 @@ const SignupPage = () => {
 
 
         <div className="text-center lg:text-left lg:w-1/2 mx-5 text-white">
-
-                 {/* Social Signup Option */}
-                 <div className="mb-4">
-              <button
-                className="btn w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold border-none"
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={googleLoading}
-              >
-                <IconBrandGoogle className="w-5 h-5 mr-2" />
-                <span>{googleLoading ? 'Signing in...' : 'Continue with Google'}</span>
-              </button>
-            </div>
           <h1 className="text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">
             Join Our Community
           </h1>

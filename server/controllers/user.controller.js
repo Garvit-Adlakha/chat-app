@@ -153,20 +153,20 @@ export const updateUser = catchAsync(async (req, res, next) => {
     generateToken(res, updatedUser, "Profile updated successfully", 200);
 });
 export const signout = catchAsync(async (req, res, next) => {
-    return res
-        .status(200)
-        .clearCookie("token", {
-            httpOnly: true,
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            secure: process.env.NODE_ENV === 'production',
-            expires: new Date(0),
-            path: "/"
-        })
-        .json({
-            status: "success",
-            message: "Logged out successfully"
-        });
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 0,  // Ensures immediate removal
+    path: "/"
 });
+
+    return res.status(200).json({
+        status: "success",
+        message: "Logged out successfully"
+    });
+});
+
 
 
 export const searchUser = catchAsync(async (req, res) => {

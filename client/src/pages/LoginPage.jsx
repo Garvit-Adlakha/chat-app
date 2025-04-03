@@ -114,7 +114,7 @@ const LoginPage = () => {
             </div>
           </div>
 
-          <div className="mt-8 bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
+          {/* <div className="mt-8 bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10">
             <h3 className="text-xl font-medium mb-3 flex items-center">
               <IconRobot className="mr-2 text-blue-300" /> Try Our AI Assistant
             </h3>
@@ -130,7 +130,7 @@ const LoginPage = () => {
               <IconMessage className="w-5 h-5" />
               <span className="font-medium">Start Guest Experience</span>
             </HoverBorderGradient>
-          </div>
+          </div> */}
         </div>
 
         <div className="card bg-black/20 backdrop-blur-lg w-full max-w-md shrink-0 shadow-2xl transition-all duration-300 hover:shadow-3xl lg:w-1/2 border border-white/10">
@@ -229,10 +229,20 @@ const LoginPage = () => {
               <div className="form-control mt-6">
                 <button
                   type="submit"
-                  className={`btn btn-primary w-full ${isLoading ? 'loading' : ''}`}
+                  className="btn btn-primary w-full relative"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Signing in...' : 'Sign In'}
+                  {isLoading && (
+                    <span className="absolute left-4 inline-flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </span>
+                  )}
+                  <span className={isLoading ? "ml-3" : ""}>
+                    {isLoading ? 'Signing in...' : 'Sign In'}
+                  </span>
                 </button>
               </div>
 

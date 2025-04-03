@@ -22,31 +22,30 @@ const Port = process.env.PORT || 5000;
 const app = express();
 const server = createServer(app);
 const corsOptions = {
-    origin: function(origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "http://localhost:4173", 
-        process.env.CLIENT_URL,
-        "https://whisperwire-main.vercel.app"
-      ].filter(Boolean);
-      
-      // Allow requests with no origin (like mobile apps, React Native, or curl requests)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`Blocked request from unauthorized origin: ${origin}`);
-        callback(new Error('CORS policy violation'));
-      }
-    },
-    credentials: true, // Important for cookies
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-    exposedHeaders: ["Authorization"],
-    maxAge: 86400, // Cache preflight response for 24 hours
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-  };
-
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "http://localhost:4173", 
+      process.env.CLIENT_URL,
+      "https://whisperwire-main.vercel.app"
+    ].filter(Boolean);
+    
+    // Allow requests with no origin (mobile apps, curl, etc)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`Blocked request from unauthorized origin: ${origin}`);
+      callback(new Error('CORS policy violation'));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+  exposedHeaders: ["set-cookie"],
+  maxAge: 86400,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
 
 const io = new Server(server, {
     cors: corsOptions, // Use the same CORS options
@@ -75,7 +74,10 @@ app.use(cookieParser(process.env.JWT_SECRET, {
 //middleware
 
 app.set('io', io)
-app.use(helmet())
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+}));
 app.use(hpp())
 app.use("/api", limiter)
 app.use(express.json({

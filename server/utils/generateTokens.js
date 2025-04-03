@@ -30,9 +30,9 @@ export const generateToken = (res, user, message, statusCode = 200) => {
         );
 
         const cookieOptions = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+            httpOnly: true ,
+            secure: true,
+            sameSite: 'none',
             maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 15 * 24 * 60 * 60 * 1000, // 15 days
             path: "/",
             domain: "chat-app-q8uf.onrender.com"
@@ -102,7 +102,7 @@ export const clearTokenCookie = (res) => {
             httpOnly: false,
             expires: new Date(0),
             path: '/',
-            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             secure: process.env.NODE_ENV === 'production'
         });
     }

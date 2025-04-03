@@ -14,11 +14,19 @@ export const SettingsDropdown = () => {
     const logoutMutation = useMutation({
         mutationFn: userService.logout,
         onSuccess: () => {
-            toast.success("Logged out successfully")
+            toast.success("Logged out successfully");
+            // Clear the user data
             queryClient.setQueryData(['user'], null);
+            // Invalidate all queries to ensure clean state
+            queryClient.invalidateQueries();
         },
         onError: (error) => {
-            console.log(error);
+            console.error("Logout error:", error);
+            toast.error("Failed to logout. Please try again.");
+        },
+        onSettled: () => {
+            // Navigate to homepage after logout completes (success or failure)
+            navigate('/');
         }
     });
 
@@ -29,8 +37,8 @@ export const SettingsDropdown = () => {
 
     const handleLogout = (e) => {
         e.preventDefault();
+        // Just trigger the mutation and let the callbacks handle navigation
         logoutMutation.mutate();
-        navigate('/login');
     };
 
     return (

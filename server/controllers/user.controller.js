@@ -35,13 +35,11 @@ export const registerUser = catchAsync(async (req, res, next) => {
     }
 
     const result = await uploadMedia(file?.path);
-    console.log("result", result)
 
     const avatar = {
         public_id: result.public_id,
         url: result.secure_url
     }
-    console.log("avatar", avatar)
 
 
     // Create new user
@@ -84,25 +82,35 @@ export const loginUser = catchAsync(async (req, res, next) => {
 })
 
 export const getProfile = catchAsync(async (req, res, next) => {
-    let user;
+    try {
+        let user;
 
-    if (!req.params.id || req.params.id === req.id) {
-        // If no ID is provided or the ID matches the current user, return their profile
-        user = await User.findById(req.id);
-    } else {
-        // Fetch another user's profile
-        user = await User.findById(req.params.id);
-
-        if (!user) {
-            throw new AppError("User not found", 404);
+        if (!req.params.id || req.params.id === req.id) {
+            // If no ID is provided or the ID matches the current user, return their profile
+            user = await User.findById(req.id);
+            if (!user) {
+                return next(new AppError("User not found", 404));
+            }
+        } else {
+            // Fetch another user's profile
+            user = await User.findById(req.params.id);
+            if (!user) {
+                return next(new AppError("User not found", 404));
+            }
         }
-    }
 
-    res.status(200).json({
-        status: "success",
-        data: { user }
-    });
+        // Set appropriate CORS header for profile requests
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        
+        res.status(200).json({
+            status: "success",
+            data: { user }
+        });
+    } catch (error) {
+        next(new AppError(error.message, 500));
+    }
 });
+
 export const updateUser = catchAsync(async (req, res, next) => {
     const { name,  bio } = req.body;
     const file = req.file;
@@ -146,21 +154,22 @@ export const updateUser = catchAsync(async (req, res, next) => {
 });
 
 export const signout = catchAsync(async (req, res, next) => {
-    res
+    // Clear the token cookie with exact same settings as when it was created
+    return res
         .status(200)
         .cookie("token", "", {
             httpOnly: true,
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             secure: process.env.NODE_ENV === 'production',
             expires: new Date(0), // Set cookie to expire immediately
-            path: "/"
+            path: "/",
+            partitioned: true // Include this if you're using it when setting the cookie
         })
         .json({
             status: "success",
             message: "Logged out successfully"
         });
 });
-
 
 export const searchUser = catchAsync(async (req, res) => {
     const { name = "" } = req.query;
@@ -195,7 +204,6 @@ export const sendFriendRequest = catchAsync(async (req, res, next) => {
     if (receiverId.toString() === req.id.toString()) {
         throw new AppError("You cannot send request to yourself", 400)
     }
-    console.log(receiverId)
     const senderId = req.id;
     const existingRequest = await Request.findOne({
         $or: [
@@ -306,7 +314,6 @@ export const getMyFriends = catchAsync(async (req, res, next) => {
     // Extract friends from chats
     const friends = chats.map(({ members }) => {
         const friend = members.find(member => member._id.toString() !== req.id.toString());
-        console.log(friend)
         return {
             _id: friend._id,
             name: friend.name,

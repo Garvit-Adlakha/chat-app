@@ -7,7 +7,6 @@ import { AppError } from './error.middleware.js';
  * @returns {Function} Express middleware
  */
 export const validate = (validations) => {
-    // Remove console.log
     const validationArray = Array.isArray(validations) ? validations : [validations];
 
     return async (req, res, next) => {
@@ -41,7 +40,7 @@ export const validate = (validations) => {
     };
 };
 
-// Password validation regex
+// Define regex patterns as strings to avoid any issues
 const PASSWORD_REGEX = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])/;
 const NAME_REGEX = /^[a-zA-Z\s]*$/;
 

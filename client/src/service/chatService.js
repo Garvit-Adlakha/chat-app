@@ -1,9 +1,10 @@
-import axiosInstance, { fileUploadInstance } from '../axios/axiosInstance';
+import axiosInstance from '../axios/axiosInstance';
 
 const chatService = {
   UserChats: async () => {
     try {
       const response = await axiosInstance.get('/chat/getChat')
+      console.log("UserChats response:", response.data);
       return response.data.chats
     } catch (error) {
       throw error;
@@ -100,6 +101,7 @@ const chatService = {
       throw error;
     }
   },
+  
   sendAttachments: async ({chatId, files}) => {
     try {
       if (!chatId) {
@@ -136,8 +138,11 @@ const chatService = {
         console.log(`  ${key} = ${value instanceof File ? `File: ${value.name}, ${value.size} bytes` : value}`);
       }
       
-      // Add upload progress tracking
-      const response = await fileUploadInstance.post('/chat/message', formData, {
+      // Using axiosInstance instead of fileUploadInstance
+      const response = await axiosInstance.post('/chat/message', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data', // Ensure correct content type
+        },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           console.log(`Upload progress: ${percentCompleted}%`);
@@ -162,10 +167,11 @@ const chatService = {
       throw error;
     }
   },
+  
   addMembersToGroup: async ({chatId, members}) => {
     try {
       const response = await axiosInstance.put('/chat/addMembers', {
-        chatId, 
+        chatId,
         members
       });
       return response.data.data;
@@ -173,12 +179,12 @@ const chatService = {
       throw error;
     }
   },
+  
   deleteGroup: async (chatId) => {
     try {
         if (!chatId) {
             throw new Error('Chat ID is required for deletion');
         }
-        
         const response = await axiosInstance.delete(`/chat/${chatId}`);
         return response.data;
     } catch (error) {
@@ -187,10 +193,11 @@ const chatService = {
         throw error;
     }
   },
+  
   removeMemebrsFromGroup: async ({chatId, members}) => {
     try {
       const response = await axiosInstance.put('/chat/removeMembers', {
-        chatId, 
+        chatId,
         members
       });
       return response.data.data;
@@ -198,6 +205,7 @@ const chatService = {
       throw error;
     }
   },
+  
   renameGroup: async ({chatId, name}) => {
     try {
       const response = await axiosInstance.put(`/chat/${chatId}`, {
@@ -208,7 +216,8 @@ const chatService = {
       throw error;
     }
   },
-  leaveGroup:async({chatId}) => {
+  
+  leaveGroup: async({chatId}) => {
       try {
           const response= await axiosInstance.delete(`/chat/leave/${chatId}`);
           return response.data;

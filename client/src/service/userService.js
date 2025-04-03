@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import axiosInstance from "../axios/axiosInstance";
 
 /**
@@ -29,6 +30,7 @@ const userService = {
   login: async (data) => {
     try {
       const response = await axiosInstance.post('/user/signin', data);
+      console.log(response.data);
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || "Login failed");
@@ -37,6 +39,7 @@ const userService = {
   currentUser: async () => {
     try {
       const response = await axiosInstance.get('/user/profile');
+      console.log(response.data);
       return response.data.data.user;
     } catch (error) {
       throw new Error(error.response?.data?.message || "Failed to fetch user");
@@ -80,7 +83,8 @@ const userService = {
       const response = await axiosInstance.put('/user/sendrequest', { receiverId });
       return response.data.data.request;
     } catch (error) {
-      throw new Error(error.response?.data?.message || "Failed to send friend request");
+      toast.error(error.response?.data?.message || "Failed to send friend request");
+      return response?.data?.message ;
     }
   },  
   AcceptFriendRequest: async ({ requestId, accept }) => {

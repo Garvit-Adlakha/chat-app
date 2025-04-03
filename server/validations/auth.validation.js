@@ -27,6 +27,28 @@ export const validatePasswordChange = validate([
             }
             return true;
         })
-        .matches(PASSWORD_REGEX)
+        .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])/) // Fixed regex pattern
         .withMessage('Password must meet complexity requirements')
+]);
+
+export const validatePasswordReset = validate([
+    commonValidations.email,
+    body('token')
+        .notEmpty()
+        .withMessage('Reset token is required'),
+    body('password')
+        .notEmpty()
+        .withMessage('New password is required')
+        .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])/) // Fixed regex pattern
+        .withMessage('Password must meet complexity requirements')
+]);
+
+export const validateForgotPassword = validate([
+    commonValidations.email
+]);
+
+export const validateGoogleAuth = validate([
+    body('token')
+        .notEmpty()
+        .withMessage('Google token is required')
 ]);

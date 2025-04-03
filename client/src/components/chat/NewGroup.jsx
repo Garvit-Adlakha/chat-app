@@ -122,9 +122,9 @@ const NewGroup = ({ isOpen, onClose }) => {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Group Icon Selector */}
                         <div className="flex flex-col items-center mb-4">
-                            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                            <h3 className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                                 Group Icon
-                            </label>
+                            </h3>
                             <div className="flex flex-col items-center gap-3">
                                 <div className="relative group cursor-pointer">
                                     <div className="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center overflow-hidden border-2 border-blue-300 dark:border-blue-700">
@@ -156,17 +156,18 @@ const NewGroup = ({ isOpen, onClose }) => {
 
                         {/* Group Name Input */}
                         <div>
-                            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                                Group Name
-                            </label>
-                            <input
+                            <label  className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                <input
                                 type="text"
+                                name='groupName'
+                                maxLength={50}
                                 value={groupName}
                                 onChange={(e) => setGroupName(e.target.value)}
                                 className="w-full px-3 py-2 bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="Enter group name"
                                 required
                             />
+                              </label>
                         </div>
 
                         {/* Selected Users */}
@@ -188,6 +189,7 @@ const NewGroup = ({ isOpen, onClose }) => {
                         <div className="relative">
                             <input
                                 type="text"
+                                name='search'
                                 placeholder="Search from your friends..."
                                 className="w-full px-4 py-2 pl-10 bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 value={searchQuery}

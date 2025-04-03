@@ -116,7 +116,7 @@ export const newGroupChat = catchAsync(async (req, res, next) => {
 });
 
 export const getMyChats = catchAsync(async (req, res, next) => {
-    console.log(req.id)
+    console.log("user from get my chats",req.user)
     const transformedChats = await Chat.aggregate([
         // Match chats where current user is a member AND isGroupChat is false
         {

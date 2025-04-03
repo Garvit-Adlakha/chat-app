@@ -20,17 +20,15 @@ const FriendSearch = ({ isOpen, onClose }) => {
         queryFn: () => userService.UserSearch(debouncedQuery),
     });
     const queryClient = useQueryClient();
-    const mutation=useMutation({
-
+    const mutation = useMutation({
         mutationFn: userService.SendFriendRequest,
-        onSuccess:()=>{
-            toast.success("Friend request sent successfully")
-            queryClient.invalidateQueries({ queryKey: ["users", searchQuery] })
+        onSuccess: () => {
+            toast.success("Friend request sent successfully");
+            queryClient.invalidateQueries({ queryKey: ["users", debouncedQuery] });
         },
-        onError:(error)=>{
-            toast.error(error?.response?.data?.message || "Failed to send friend request")
+        onError: (error) => {
         }
-    })
+    });
     const handleAddFriend = (id) => {
         
         mutation.mutate(id)
@@ -94,6 +92,7 @@ const FriendSearch = ({ isOpen, onClose }) => {
                             placeholder="Search by username or email..."
                             className="w-full px-4 py-2 pl-10 bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-neutral-800 dark:text-neutral-200"
                             value={searchQuery}
+                            name="search"
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                         <IconSearch className="absolute left-3 top-2.5 w-5 h-5 text-neutral-400" />

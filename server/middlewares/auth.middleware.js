@@ -7,44 +7,49 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const isAuthenticated = catchAsync(async (req, res, next) => {
-  // Check multiple sources for the token - cookies first, then authorization header
-  let token = req.cookies.token;
-  
-  // Also check Authorization header if cookie is not present
-  if (!token && req.headers.authorization) {
-    const authHeader = req.headers.authorization;
-    token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
-    console.log("Using token from Authorization header");
-  }
-  
-  if (!token) {
-    throw new AppError("You are not logged in. Please log in to get access.", 401);
-  }
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Token verified:", decoded.userId);
-    req.id = decoded.userId;
-    req.user = await User.findById(req.id);
-
-    if (!req.user) {
-      throw new AppError("User not found", 404);
+    // Focus primarily on the cookie for web applications
+    const token = req.cookies?.token;
+    
+    if (!token) {
+      return next(new AppError("Authentication required. Please log in to access this resource.", 401));
     }
 
-    // Update last active status without awaiting to improve performance
-    User.findByIdAndUpdate(req.id, { lastActive: Date.now() }).catch(err => 
+    // Verify token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (jwtError) {
+      if (jwtError.name === "JsonWebTokenError") {
+        return next(new AppError("Invalid token. Please log in again.", 401));
+      }
+      if (jwtError.name === "TokenExpiredError") {
+        return next(new AppError("Your session has expired. Please log in again.", 401));
+      }
+      throw jwtError;
+    }
+    
+    // Set user ID in request
+    req.id = decoded.userId;
+    
+    // Get user
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return next(new AppError("The user associated with this token no longer exists.", 401));
+    }
+
+    // Update last active status without awaiting
+    User.findByIdAndUpdate(user._id, { lastActive: Date.now() }).catch(err => 
       console.error("Failed to update last active:", err)
     );
 
+    // Attach the user object to the request for convenience
+    req.user = user;
+
     next();
   } catch (error) {
-    if (error.name === "JsonWebTokenError") {
-      throw new AppError("Invalid token. Please log in again.", 401);
-    }
-    if (error.name === "TokenExpiredError") {
-      throw new AppError("Your token has expired. Please log in again.", 401);
-    }
-    throw error;
+    return next(error);
   }
 });
 
@@ -55,33 +60,17 @@ export const socketAuthenticator = async (err, socket, next) => {
   }
   
   try {
+    // Focus on cookies for socket authentication as well
     let token = null;
     
     // Try to get token from cookies
     if (socket.request.cookies && socket.request.cookies.token) {
       token = socket.request.cookies.token;
-      console.log("Token from cookie found");
-    }
-    // Fallback to auth object
-    else if (socket.handshake.auth && socket.handshake.auth.token) {
-      token = socket.handshake.auth.token;
-      console.log("Token from auth object found");
-    }
-    // Check headers
-    else if (socket.handshake.headers.authorization) {
-      // Handle both "Bearer <token>" and just "<token>" formats
-      const authHeader = socket.handshake.headers.authorization;
-      token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
-      console.log("Token from header found");
     }
     
     if (!token) {
       console.error("No token found in socket request");
-      console.log("Socket handshake details:", {
-        auth: socket.handshake.auth,
-        query: socket.handshake.query
-      });
-      return next(new Error("Authentication token is missing"));
+      return next(new Error("Authentication required"));
     }
     
     try {
@@ -100,7 +89,6 @@ export const socketAuthenticator = async (err, socket, next) => {
       // Attach user to socket
       socket.user = user;
       socket.userId = user._id;
-      console.log("Socket authenticated for user:", user._id.toString());
       next();
     } catch (jwtError) {
       console.error("JWT verification error:", jwtError.message);

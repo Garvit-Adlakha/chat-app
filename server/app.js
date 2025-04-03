@@ -55,18 +55,17 @@ const io = new Server(server, {
     },
 });
 
-//rateLimier
-const limiter = rateLimit(
-    {
-        windowMs: 15 * 60 * 1000,
-        max: 1000,
-        message: 'Too many request from this IP, please try again after 15 minutes'
-    }
-)
+//rateLimit configuration
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10000, // limit each IP to 1000 requests per windowMs
+    message: 'Too many requests from this IP, please try again after 15 minutes',
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 // Enhanced cookie parser options for modern browsers
 app.use(cookieParser(process.env.JWT_SECRET, {
-  // These options will propagate to cookies created by the cookieParser middleware
   sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   secure: process.env.NODE_ENV === 'production',
   httpOnly: true
@@ -85,7 +84,6 @@ app.use(express.urlencoded({
     extended: true,
     limit: '10kb'
 }))
-app.use(cookieParser())
 
 // Fix for CORB issues with external images
 app.use((req, res, next) => {
@@ -98,35 +96,31 @@ if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'))
 }
 
-//cors config
+// Improve CORS configuration
 const corsOptions = {
   origin: function(origin, callback) {
     const allowedOrigins = [
       "http://localhost:3000",
       "http://localhost:4173", 
-      process.env.CLIENT_URL // Make sure this is correctly set in your .env
+      process.env.CLIENT_URL
     ].filter(Boolean);
     
-    // For development/debugging, you can allow all origins
+    // Allow requests with no origin (like mobile apps, React Native, or curl requests)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.error("Blocked origin:", origin);
-      callback(null, false);
+      console.warn(`Blocked request from unauthorized origin: ${origin}`);
+      callback(new Error('CORS policy violation'));
     }
   },
-  credentials: true,
+  credentials: true, // Important for cookies
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-  allowedHeaders: ["Content-Type", "Authorization","Accept"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+  exposedHeaders: ["Authorization"],
+  maxAge: 86400, // Cache preflight response for 24 hours
 };
 
-
-app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    next();
-  });
-
+// Apply CORS early in the middleware chain
 app.use(cors(corsOptions));
 
 //api routes

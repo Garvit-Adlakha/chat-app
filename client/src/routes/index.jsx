@@ -2,65 +2,57 @@ import { lazy, Suspense } from "react"
 import Protected from "../components/auth/Protected"
 import { AppLayoutLoader, HomePageLoader, LoginPageLoader } from "../components/layout/Loaders"
 import { Route, Routes } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query";
-import userService from "../service/userService";
+
+// Lazy loaded components
 const HomePage = lazy(() => import("../pages/HomePage"))
 const LoginPage = lazy(() => import("../pages/LoginPage"))
 const Signup = lazy(() => import("../pages/SignupPage"))
 const MainChat = lazy(() => import("../pages/MainChat"))
 const NotFound = lazy(() => import("../pages/NotFound"))
-// Move this to AuthContext
 
-const appRouter = () => {
-  
-  const { data: user, isPending, isLoading } = useQuery({
-    queryKey: ["user"],
-    queryFn: userService.currentUser,
-    staleTime: 1000 * 60 * 10,
-    retry: false,
-  });
-
-  const loading = isPending || isLoading;
-  if (loading) {
-    return <AppLayoutLoader />;
-  }
-
+const AppRouter = () => {
   return (
     <Routes>
-      {/* Public routes */}
+      {/* Public routes - no auth checks */}
       <Route path="/" element={
         <Suspense fallback={<HomePageLoader />}>
           <HomePage />
         </Suspense>
       } />
-
-      {/* Auth routes - only for non-authenticated users */}
-      <Route element={<Protected requiredAuth={false} redirect="/" />}>
-        <Route path="/login" element={
-          <Suspense fallback={<LoginPageLoader />}>
+      
+      {/* Non-authenticated routes */}
+      <Route path="/login" element={
+        <Suspense fallback={<LoginPageLoader />}>
+          <Protected requiredAuth={false} redirect="/chat">
             <LoginPage />
-          </Suspense>
-        } />
-        <Route path="/signup" element={
-          <Suspense fallback={<LoginPageLoader/>}>
+          </Protected>
+        </Suspense>
+      } />
+      
+      <Route path="/signup" element={
+        <Suspense fallback={<LoginPageLoader />}>
+          <Protected requiredAuth={false} redirect="/chat">
             <Signup />
-          </Suspense>
-        } />
-      </Route>
+          </Protected>
+        </Suspense>
+      } />
 
       {/* Protected routes - only for authenticated users */}
-      <Route element={<Protected requiredAuth={true} />}>
-        <Route path="/chat" element={
-          <Suspense fallback={<AppLayoutLoader />}>
+      <Route path="/chat" element={
+        <Suspense fallback={<AppLayoutLoader />}>
+          <Protected requiredAuth={true} redirect="/login">
             <MainChat />
-          </Suspense>
-        } />
-        <Route path="/chat/:chatId" element={
-          <Suspense fallback={<AppLayoutLoader />}>
+          </Protected>
+        </Suspense>
+      } />
+      
+      <Route path="/chat/:chatId" element={
+        <Suspense fallback={<AppLayoutLoader />}>
+          <Protected requiredAuth={true} redirect="/login">
             <MainChat />
-          </Suspense>
-        } />
-      </Route>
+          </Protected>
+        </Suspense>
+      } />
 
       {/* 404 route */}
       <Route path="*" element={
@@ -72,4 +64,4 @@ const appRouter = () => {
   );
 };
 
-export default appRouter;
+export default AppRouter;

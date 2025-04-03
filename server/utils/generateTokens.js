@@ -18,17 +18,17 @@ export const generateToken = (res, user, message, statusCode = 200) => {
             { expiresIn: process.env.JWT_EXPIRY || '15d' }
         );
 
-        // Prepare cookie options with modern browser compatibility
+        // Update cookie options for better security and cross-browser compatibility
         const cookieOptions = {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            path: '/',
-            maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days in milliseconds
-            partitioned: true // Support Chrome's CHIPS (Cookies Having Independent Partitioned State)
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+            path: "/",
+            partitioned: true // For Chrome's third-party cookie restrictions
         };
 
-        // Set the cookie
+        // Set cookie
         res.cookie('token', token, cookieOptions);
 
         // Create a sanitized user object without sensitive data
@@ -42,21 +42,22 @@ export const generateToken = (res, user, message, statusCode = 200) => {
             isOnline: user.isOnline,
             lastActive: user.lastActive,
             isEmailVerified: user.isEmailVerified || false,
-            createdAt: user.createdAt
+            googleId: !!user.googleId, // Just indicate if it exists, don't send the actual ID
+            createdAt: user.createdAt,
         };
 
-        // Send response with token in header as well for clients that can't access cookies
+        // Send response (without including the token in the body for better security)
         return res
             .status(statusCode)
-            .header('Authorization', `Bearer ${token}`)
             .json({
                 status: 'success',
                 message,
-                token, // Include token in response body for non-cookie clients
                 user: sanitizedUser
             });
     } catch (error) {
         console.error('Error generating token:', error.message);
-        throw new Error('Token generation failed');
+        throw new Error('Token generation failed: ' + error.message);
     }
 };
+
+// Consider adding a separate function for token verification/validation

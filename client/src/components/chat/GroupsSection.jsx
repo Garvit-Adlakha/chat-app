@@ -13,6 +13,9 @@ const GroupsSection = () => {
         queryKey: ["groups"],
         queryFn: chatService.UserGroupChats,
     });
+
+    console.log(groups)
+
     const {open,setOpen}=useSidebar()
 
     const navigate=useNavigate()

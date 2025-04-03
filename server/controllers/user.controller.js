@@ -152,24 +152,22 @@ export const updateUser = catchAsync(async (req, res, next) => {
     // Generate token and send response
     generateToken(res, updatedUser, "Profile updated successfully", 200);
 });
-
 export const signout = catchAsync(async (req, res, next) => {
-    // Clear the token cookie with exact same settings as when it was created
     return res
         .status(200)
-        .cookie("token", "", {
+        .clearCookie("token", {
             httpOnly: true,
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             secure: process.env.NODE_ENV === 'production',
-            expires: new Date(0), // Set cookie to expire immediately
-            path: "/",
-            partitioned: true // Include this if you're using it when setting the cookie
+            expires: new Date(0),
+            path: "/"
         })
         .json({
             status: "success",
             message: "Logged out successfully"
         });
 });
+
 
 export const searchUser = catchAsync(async (req, res) => {
     const { name = "" } = req.query;

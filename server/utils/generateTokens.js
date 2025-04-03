@@ -34,8 +34,7 @@ export const generateToken = (res, user, message, statusCode = 200) => {
             secure: true,
             sameSite: 'none',
             maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 15 * 24 * 60 * 60 * 1000, // 15 days
-            path: "/",
-            domain: "chat-app-q8uf.onrender.com"
+            domain:"chat-app-q8uf.onrender.com"
             };
         
         res.cookie('token', token, cookieOptions);

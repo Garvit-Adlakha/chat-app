@@ -185,6 +185,7 @@ const chatService = {
         if (!chatId) {
             throw new Error('Chat ID is required for deletion');
         }
+        
         const response = await axiosInstance.delete(`/chat/${chatId}`);
         return response.data;
     } catch (error) {

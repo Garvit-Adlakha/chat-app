@@ -21,7 +21,11 @@ export const SideBar = () => {
     const { isOpen } = useSidebar();  // Changed from open to isOpen for clarity
     const{data:request , isFetching}=useQuery({
         queryKey:["requests"],
-        queryFn: userService.getAllNotifications
+        queryFn: userService.getAllNotifications,
+        refetchInterval:10000,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: true,
+        
     })
     const [requestCount, setRequestCount] = useState(0);
     

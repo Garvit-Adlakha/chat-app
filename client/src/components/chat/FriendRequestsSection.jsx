@@ -10,7 +10,7 @@ const FriendRequestsSection = () => {
     const {data:requests,isLoading} = useQuery({
         queryKey:["requests"],
         queryFn: userService.getAllNotifications
-    })
+})
 
     const queryClient = useQueryClient();
     const acceptMutation=useMutation({

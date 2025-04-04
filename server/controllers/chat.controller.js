@@ -300,7 +300,7 @@ export const addMembers = catchAsync(async (req, res, next) => {
         throw new AppError("This is not a group chat", 400);
     }
 
-    if (chat.creator.toString() !== req.id) {
+    if (chat.creator.toString() !== req.id.toString()) {
         throw new AppError("You are not authorized to add members", 403);
     }
 
@@ -393,7 +393,7 @@ export const removeMembers = catchAsync(async (req, res, next) => {
         throw new AppError("This is not a group chat", 400);
     }
 
-    if (chat.creator.toString() !== req.id) {
+    if (chat.creator.toString() !== req.id.toString()) {
         throw new AppError("You are not authorized to remove members", 403);
     }
 
@@ -473,7 +473,7 @@ export const leaveGroup = catchAsync(async (req, res, next) => {
     }
 
     // Check membership
-    if (!chat.members.some(member => member.toString() === req.id)) {
+    if (!chat.members.some(member => member.toString() === req.id.toString())) {
         throw new AppError("You are not a member of this group", 400);
     }
 

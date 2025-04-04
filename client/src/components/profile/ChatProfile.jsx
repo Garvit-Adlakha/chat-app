@@ -195,15 +195,6 @@ const ChatProfile = ({ chat, isOpen, onClose }) => {
     }
 
 
-    useClickOutside(sidebarRef, (event) => {
-        if (isOpen) {
-            onClose();
-        }
-    });
-
-
-
-
 
     const creatorId = chat?.isGroupChat ? chat?.creator : null
     const creator = chat?.isGroupChat ? chat?.members.find(member => member._id === creatorId) : null

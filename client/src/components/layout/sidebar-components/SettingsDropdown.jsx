@@ -16,13 +16,18 @@ export const SettingsDropdown = () => {
     const queryClient = useQueryClient();
     const logoutMutation = useMutation({
         mutationFn: userService.logout,
-        onSuccess: () => {
-            // Clear the user data
-            queryClient.setQueryData(['user'], null);
-            // Invalidate all queries to ensure clean state
-            queryClient.invalidateQueries();
+        onSuccess: async () => {
+            // First remove the user query
+            queryClient.removeQueries(['user']);
+            
+            // Wait for all queries to be in\validated
+            await queryClient.invalidateQueries();
+            
+            // Clear the query cache entirely
+            queryClient.clear();
+            
             toast.success("Logged out successfully");
-            navigate('/');
+            navigate('/', { replace: true }); // Use replace to prevent back navigation
         },
         onError: (error) => {
             console.error("Logout error:", error);

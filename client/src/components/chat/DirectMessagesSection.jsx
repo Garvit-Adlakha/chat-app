@@ -12,7 +12,7 @@ const DirectMessagesSection = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const {open,setOpen}=useSidebar()
-    const { messageCounts, clearMessageCount } = useChatStore();
+    const { messageCounts, clearMessageCount, isUserOnline } = useChatStore();
     
     // Get current chat ID from URL
     const currentChatId = location.pathname.split('/').pop();
@@ -31,9 +31,9 @@ const DirectMessagesSection = () => {
         }
     }, [currentChatId, clearMessageCount, messageCounts]);
     
-    // Update users based on search query
+    // Update users based on search query - add null check for user.name
     const filteredUsers = users?.filter(user => 
-        user.name.toLowerCase().includes(searchQuery.toLowerCase())
+        user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const handleUserClick = (user) => {
@@ -76,18 +76,28 @@ const DirectMessagesSection = () => {
                                         : 'hover:bg-neutral-100 dark:hover:bg-neutral-700'
                                 } rounded-lg transition-colors text-left`}
                             >
-                                <Avatar 
-                                    src={user.avatar} 
-                                    alt={user.name} 
-                                    className="w-10 h-10 mr-3" 
-                                />
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200   ">
+                                <div className="relative">
+                                    <Avatar 
+                                        src={user.avatar} 
+                                        alt={user.name} 
+                                        className="w-10 h-10 mr-3" 
+                                    />
+                                    {isUserOnline(user._id) && (
+                                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full ring-1 ring-white dark:ring-neutral-800" />
+                                    )}
+                                </div>
+                                <div className="flex flex-col ml-3">
+                                    <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
                                         {user.name}
                                     </span>
                                     {messageCounts[user._id] > 0 && (
                                         <span className="text-xs text-blue-500 dark:text-blue-400">
                                             {messageCounts[user._id]} new messages
+                                        </span>
+                                    )}
+                                    {!messageCounts[user._id] && (
+                                        <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                                            {isUserOnline(user._id) ? 'Online' : ''}
                                         </span>
                                     )}
                                 </div>

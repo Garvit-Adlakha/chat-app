@@ -6,6 +6,25 @@ const useChatStore = create(
         (set, get) => ({
             // Simple object to track message counts by chat ID
             messageCounts: {},
+            requestNotifications: 0,
+
+            setRequestNotifications: (count) => {
+                set(() => ({
+                    requestNotifications: count
+                }));
+            },
+            
+            incrementRequestNotifications: () => {
+                set((state) => ({
+                    requestNotifications: state.requestNotifications + 1
+                }));
+            },
+            
+            decrementRequestNotifications: () => {
+                set((state) => ({
+                    requestNotifications: Math.max(0, state.requestNotifications - 1)
+                }));
+            },
             
             // Function to update message count for a chat
             updateMessageCount: (chatId, count) => {
@@ -16,6 +35,7 @@ const useChatStore = create(
                     }
                 }));
             },
+
             
             // Function to clear message count for a chat
             clearMessageCount: (chatId) => {
@@ -77,11 +97,43 @@ const useChatStore = create(
                         [userId]: { isOnline, lastActive: lastActive || new Date() }
                     }
                 })),
+                
+            // Set multiple users' online status at once (for bulk updates)
+            setMultipleUsersOnlineStatus: (usersStatusMap) => 
+                set((state) => {
+                    const updatedOnlineUsers = { ...state.onlineUsers };
+                    
+                    // Only update provided users, don't reset others
+                    Object.entries(usersStatusMap).forEach(([userId, status]) => {
+                        updatedOnlineUsers[userId] = {
+                            isOnline: status.isOnline,
+                            lastActive: status.lastActive || new Date()
+                        };
+                    });
+                    
+                    return { onlineUsers: updatedOnlineUsers };
+                }),
+                
+            // Reset all users to offline (useful when socket disconnects)
+            resetAllUsersOffline: () =>
+                set((state) => {
+                    const resetUsers = {};
+                    
+                    // Set all known users to offline but preserve their last active time
+                    Object.entries(state.onlineUsers).forEach(([userId, userData]) => {
+                        resetUsers[userId] = {
+                            isOnline: false,
+                            lastActive: userData.lastActive
+                        };
+                    });
+                    
+                    return { onlineUsers: resetUsers };
+                }),
             
             // Check if a user is online
             isUserOnline: (userId) => {
                 const state = get();
-                return state.onlineUsers[userId]?.isOnline || false;
+                return state.onlineUsers[userId]?.isOnline === true;
             },
             
             // Get user's last active time
@@ -94,6 +146,7 @@ const useChatStore = create(
             name: 'chat-store',
             partialize: (state) => ({
                 messageCounts: state.messageCounts,
+                requestNotifications: state.requestNotifications,
                 onlineUsers: state.onlineUsers
             })
         }

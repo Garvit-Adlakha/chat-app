@@ -5,15 +5,15 @@ import { AppError } from "../middlewares/error.middleware.js";
 import { Request } from "../models/request.model.js";
 import { Chat } from "../models/chat.model.js";
 import emitEvent from "../utils/Emit.js";
-import { NEW_FRIEND_REQUEST, REFETCH_CHATS } from "../constants.js";
+import { NEW_FRIEND_REQUEST, NEW_FRIEND_REQUEST_ACCEPTED, NEW_FRIEND_REQUEST_REJECTED, REFETCH_CHATS } from "../constants.js";
 import client, { verifyGoogleToken } from "../utils/googleClient.js";
 import crypto from 'crypto';
 import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
-import e from "express";
-import path from "path";
+import { Console } from "console";
+
 
 export const registerUser = catchAsync(async (req, res, next) => {
-    const { name, username, email, password, bio } = req.body;
+    const { name, email, password, bio } = req.body;
     const file = req.file
 
     if (!file) {
@@ -26,9 +26,7 @@ export const registerUser = catchAsync(async (req, res, next) => {
     }
 
     // Check for existing user by email or username
-    const existingUser = await User.findOne({
-        $or: [{ email }]
-    });
+    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
         throw new AppError("User already exists with this email or username", 400);
@@ -41,12 +39,11 @@ export const registerUser = catchAsync(async (req, res, next) => {
         url: result.secure_url
     }
 
-
     // Create new user
     const newUser = await User.create({
         name,
         email,
-        username,
+        username: email.split('@')[0] + Math.floor(Math.random() * 10000),
         avatar,
         bio,
         password
@@ -159,7 +156,6 @@ export const updateUser = catchAsync(async (req, res, next) => {
     generateToken(res, updatedUser, "Profile updated successfully", 200);
 });
 export const signout = catchAsync(async (req, res, next) => {
-    // Use the centralized clearTokenCookie utility instead of direct cookie manipulation
     clearTokenCookie(res);
     
     res.status(200).json({
@@ -247,6 +243,7 @@ export const acceptFriendRequest = catchAsync(async (req, res) => {
     }
     if (!accept) {
         await request.deleteOne();
+        emitEvent(req, NEW_FRIEND_REQUEST_REJECTED,request.receiver._id, "request rejected")
         return res
             .status(200)
             .json({
@@ -262,6 +259,7 @@ export const acceptFriendRequest = catchAsync(async (req, res) => {
     request.deleteOne()
     ])
     emitEvent(req, REFETCH_CHATS, members, "new chat")
+    emitEvent(req,NEW_FRIEND_REQUEST_ACCEPTED, members, "request accepted")
     return res
         .status(200)
         .json({
@@ -311,12 +309,18 @@ export const getMyFriends = catchAsync(async (req, res, next) => {
     // Extract friends from chats
     const friends = chats.map(({ members }) => {
         const friend = members.find(member => member._id.toString() !== req.id.toString());
+        
+        // Handle case where friend might not be found
+        if (!friend) {
+            return null;
+        }
+        
         return {
             _id: friend._id,
             name: friend.name,
             avatar: friend.avatar.url
         };
-    });
+    }).filter(Boolean); // Remove any null entries
 
     // If chatId is provided, filter out members already in that chat
     if (chatId) {
@@ -325,9 +329,12 @@ export const getMyFriends = catchAsync(async (req, res, next) => {
             throw new AppError("Chat not found", 404);
         }
 
+        // Fix: Convert ObjectIds to strings for proper comparison
+        const chatMemberIds = chat.members.map(id => id.toString());
+        
         const availableFriends = friends.filter(
             (friend) => {
-                return !chat.members.includes(friend._id)
+                return !chatMemberIds.includes(friend._id.toString());
             }
         );
 
@@ -397,3 +404,29 @@ export const googleAuth = catchAsync(async (req, res, next) => {
         return next(new AppError(error.message, 401));
     }
 });
+
+export const removeFriends=catchAsync(async (req, res, next) => {
+    const { friendId } = req.params;
+
+    if (!friendId) {
+        throw new AppError("Friend ID is required", 400);
+    }
+
+    // Find the chat that includes both users
+    const chat = await Chat.findOne({
+        members: { $all: [req.id, friendId] },
+        isGroupChat: false
+    });
+
+    if (!chat) {
+        throw new AppError("Chat not found", 404);
+    }
+
+    // Remove the chat
+    await chat.deleteOne();
+
+    return res.status(200).json({
+        status: "success",
+        message: "Friend removed successfully"
+    });
+})

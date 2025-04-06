@@ -81,7 +81,9 @@ const useSocketStore = create((set, get) => {
       if (get().isConnected) {
         socket.emit('message', message);
         set({ lastMessage: message });
+        return true; // Indicate success
       }
+      return false; // Indicate failure
     },
     
     // Add method to check connection status
@@ -90,6 +92,15 @@ const useSocketStore = create((set, get) => {
         isConnected: get().isConnected,
         error: get().connectionError
       };
+    },
+    
+    // Add method to listen for specific events
+    onEvent: (eventName, callback) => {
+      if (socket) {
+        socket.on(eventName, callback);
+        return () => socket.off(eventName, callback); // Return cleanup function
+      }
+      return () => {}; // Empty cleanup if no socket
     }
   };
 });

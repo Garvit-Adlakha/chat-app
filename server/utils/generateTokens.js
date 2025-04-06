@@ -28,14 +28,19 @@ export const generateToken = (res, user, message, statusCode = 200) => {
                 issuer: process.env.JWT_ISSUER || 'chat-app'
             }
         );
+        const isProd = process.env.NODE_ENV === "production";
+
         const cookieOptions = {
-            maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
-            sameSite: "none", // Required for cross-origin requests
+            maxAge: 15 * 24 * 60 * 60 * 1000,
+            sameSite: isProd ? "none" : "lax",
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // Secure in production
+            secure: isProd,
             path: "/",
-            partitioned: true // Enables cross-site cookies in newer browsers
+            partitioned: isProd
         };
+        
+        res.cookie('token', token, cookieOptions);
+        
         
         res.cookie('token', token, cookieOptions);
 
@@ -88,13 +93,15 @@ export const verifyToken = (token) => {
  * @param {object} res - Express response object
  */
 export const clearTokenCookie = (res) => {
+    const isProd = process.env.NODE_ENV === 'production';
+
     const cookieOptions = {
         httpOnly: true,
         expires: new Date(0),
         path: '/',
-        sameSite: 'none',
-        secure: process.env.NODE_ENV === 'production',
-        partitioned: true // Enables cross-site cookies in newer browsers
+        sameSite: isProd ? 'none' : 'lax', // 'none' for cross-site, 'lax' for dev
+        secure: isProd,
+        partitioned: isProd // only needed for cross-site production use
     };
 
     res.cookie('token', '', cookieOptions);

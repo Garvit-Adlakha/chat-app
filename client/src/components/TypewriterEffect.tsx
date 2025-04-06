@@ -27,42 +27,50 @@ export function TypewriterEffectSmoothDemo() {
   };
 
   return (
-    <LampContainer>
-      <motion.div
-        initial={{ opacity: 0, y: 100 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
-        className="flex flex-col items-center justify-center px-6 py-10 space-y-10 md:space-y-12 text-center"
-      >
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-          <h1 className="bg-gradient-to-br from-slate-300 to-slate-500 bg-clip-text text-3xl sm:text-5xl md:text-7xl font-medium tracking-tight text-transparent">
-            <span className="block text-neutral-600 dark:text-neutral-300 text-lg sm:text-2xl md:text-3xl font-medium mb-4 md:mb-6">
-              Communication made simple
-            </span>
-            <TypewriterEffectSmooth words={WORDS} />
-          </h1>
-        </motion.div>
+<div className="min-h-[100vh]">
+    <LampContainer className="fixed inset-0 z-10 ">
+    <motion.div
+     initial={{ opacity: 0.5, y: 100 }}
+     whileInView={{ opacity: 1, y: 0 }}
+     transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
+     className="  py-4 px-6 space-y-2 md:space-y-2 text-center"
+   >
+     <motion.div 
+       initial={{ opacity: 0 }} 
+       animate={{ opacity: 1 }} 
+       transition={{ delay: 0.5 }}
+     >
+       <h1 className="bg-gradient-to-br from-slate-300 to-slate-500 bg-clip-text text-3xl sm:text-5xl md:text-7xl font-medium tracking-tight text-transparent">
+         <span className="block text-neutral-600 dark:text-neutral-300 text-lg sm:text-2xl md:text-3xl font-medium mb-4 md:mb-6">
+           Communication made simple
+         <TypewriterEffectSmooth words={WORDS} />
+         </span>
+       </h1>
+     </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="flex flex-col sm:flex-row gap-4 mt-4 sm:mt-6"
-        >
-          {[
-            { text: "Start chatting", variant: "primary", path: "/chat" },
-            { text: "Sign up", variant: "secondary", path: "/signup" },
-          ].map((button) => (
-            <button
-              key={button.text}
-              onClick={handleNavigation(button.path)}
-              className={`w-full sm:w-48 h-12 rounded-full font-semibold text-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 hover:bg-zinc-900 transition-all duration-300 ${BUTTON_VARIANTS[button.variant]}`}
-            >
-              {button.text}
-            </button>
-          ))}
-        </motion.div>
-      </motion.div>
+     <motion.div
+       initial={{ opacity: 0, y: 20 }}
+       animate={{ opacity: 1, y: 0 }}
+       transition={{ delay: 0.8 }}
+       className="sm:flex-row gap-4 mt-4 sm:mt-6  "
+     >
+       {[
+         { text: "Start chatting", variant: "primary", path: "/chat" },
+         { text: "Sign up", variant: "secondary", path: "/signup" },
+       ].map((button) => (
+         <button
+           key={button.text}
+           onClick={handleNavigation(button.path)}
+           className={`w-full sm:w-48 h-12 mt-4 rounded-full m-2 font-semibold text-lg shadow-md hover:shadow-lg transform hover:-translate-y-1  hover:bg-zinc-900 transition-all duration-300 ${BUTTON_VARIANTS[button.variant]}`}
+         >
+           {button.text}
+         </button>
+       ))}
+     </motion.div>
+   </motion.div>
     </LampContainer>
+   
+
+   </div>
   );
 }

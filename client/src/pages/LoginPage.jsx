@@ -140,7 +140,7 @@ const LoginPage = () => {
             <h1 className="text-3xl text-center mb-6 text-white font-bold">Welcome Back</h1>
 
             {/* Google Sign-In Button */}
-            <div className="mb-6 bg-black">
+            <div className="mb-6">
               <GoogleSignInButton 
                 onSuccess={handleGoogleSuccess}
                 onError={handleGoogleError}

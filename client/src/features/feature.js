@@ -73,28 +73,33 @@ const getOrSaveFromStorage = ({ key, value, get }) => {
 
   export {fileFormat, transformImage, getOrSaveFromStorage, directCloudinaryUpload}
 
- export const formatLastActive = (date) => {
+/**
+ * Format the last active time into a human-readable string
+ * @param {Date|string} date - Date object or date string
+ * @returns {string} Formatted last active time
+ */
+export const formatLastActive = (date) => {
     if (!date) return '';
-    
+
     const now = new Date();
     const lastActiveDate = new Date(date);
     const diffMs = now - lastActiveDate;
-    
+
     // Less than a minute
     if (diffMs < 60000) return 'Just now';
-    
+
     // Less than an hour
     if (diffMs < 3600000) {
         const mins = Math.floor(diffMs / 60000);
         return `${mins} min${mins > 1 ? 's' : ''} ago`;
     }
-    
+
     // Less than a day
     if (diffMs < 86400000) {
         const hours = Math.floor(diffMs / 3600000);
         return `${hours} hour${hours > 1 ? 's' : ''} ago`;
     }
-    
+
     // Format date
     return lastActiveDate.toLocaleDateString();
 };

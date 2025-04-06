@@ -8,7 +8,7 @@ import chatService from "../../service/chatService.js";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from 'react-hot-toast';
 
-export const MessageInput = ({chatId, members}) => {
+export const MessageInput = ({chatId, members, droppedFiles, resetDroppedFiles}) => {
     const [message, setMessage] = useState("");
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -34,6 +34,17 @@ export const MessageInput = ({chatId, members}) => {
             socket.off(TYPING, TypingHandler);
         };
     }, [socket, TypingHandler]);
+
+    // Process dropped files
+    useEffect(() => {
+        if (droppedFiles && droppedFiles.length > 0) {
+            handleFiles(Array.from(droppedFiles));
+            // Reset the dropped files in the parent component
+            if (resetDroppedFiles) {
+                resetDroppedFiles();
+            }
+        }
+    }, [droppedFiles, resetDroppedFiles]);
 
     // Handle input focus changes
     const handleInputFocus = () => {
@@ -159,9 +170,8 @@ export const MessageInput = ({chatId, members}) => {
       return null; // No error
     };
 
-    const handleFileSelect = async (e) => {
-      const files = Array.from(e.target.files);
-      
+    // Shared file handling function for both drag-drop and file input
+    const handleFiles = async (files) => {
       // Validate each file
       for (const file of files) {
         const error = validateFile(file);
@@ -170,25 +180,49 @@ export const MessageInput = ({chatId, members}) => {
           return;
         }
       }
+      
       setIsUploading(true);
       
       try {
-        // Create FormData and append the file
+        // Create FormData and append files
         const formData = new FormData();
-        formData.append('files', files[0]);
+        
+        // Add files to form data (limit to 5 files max as per server config)
+        const filesToUpload = files.slice(0, 5);
+        
+        if (filesToUpload.length > 1) {
+          toast.info(`Uploading ${filesToUpload.length} files...`);
+        }
+        
+        filesToUpload.forEach(file => {
+          formData.append('files', file);
+        });
+        
         formData.append('chatId', chatId);
         
-        // Upload the file
+        // Upload the files
         await uploadMutation.mutateAsync(formData);
         
         // Reset file input
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
+        
+        if (filesToUpload.length > 1) {
+          toast.success(`${filesToUpload.length} files uploaded successfully!`);
+        }
       } catch (error) {
-        console.error('Error uploading file:', error);
+        console.error('Error uploading files:', error);
+        toast.error('Failed to upload files. Please try again.');
       } finally {
         setIsUploading(false);
+      }
+    };
+
+    const handleFileSelect = (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        handleFiles(files);
       }
     };
 
@@ -213,6 +247,7 @@ export const MessageInput = ({chatId, members}) => {
               ref={fileInputRef}
               name="file input"
               disabled={isUploading}
+              multiple
             />
             <IconPaperclip className="w-5 h-5" />
           </label>
@@ -226,7 +261,7 @@ export const MessageInput = ({chatId, members}) => {
               onChange={onMessageChangeHanndler}
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}
-              placeholder={isUploading ? "Uploading..." : "Type a message"}
+              placeholder={isUploading ? "Uploading..." : "Type a message or drop files here"}
               className="w-full px-4 py-2 bg-amber-50 dark:bg-neutral-700/50 text-white rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-neutral-400"
               disabled={isUploading}
             />

@@ -113,7 +113,7 @@ import userRoutes from './routes/user.route.js';
 import chatRoutes from './routes/chat.route.js';
 import uploadRoutes from './routes/uploadRoutes.js'; // Add this import
 
-import { TYPING, USER_STATUS_CHANGE } from './constants.js';
+import { ALERT, NEW_MESSAGE, NEW_MESSAGE_ALERT, REFETCH_CHATS, TYPING, STOP_TYPING, USER_STATUS_CHANGE, GET_ONLINE_USERS } from './constants.js';
 import { getSockets } from './utils/sockets.js';
 import { Message } from './models/message.model.js';
 import { User } from './models/user.model.js';
@@ -153,27 +153,48 @@ io.on('connection', async(socket) => {
     }, {
         new: true,
         runValidators: true
-    })
+    });
 
-   const userChats=await Chat.find({
-        members:user._id
-   }).select('members')
+    const userChats = await Chat.find({
+        members: user._id
+    }).select('members');
 
-   const friendIds = [...new Set(
-    userChats.flatMap(chat => 
-        chat.members
-        .filter(id => id.toString() !== user._id.toString())
-    )
-)];
+    const friendIds = [...new Set(
+        userChats.flatMap(chat => 
+            chat.members
+            .filter(id => id.toString() !== user._id.toString())
+        )
+    )];
 
-    const friendSockets=getSockets(friendIds)
+    const friendSockets = getSockets(friendIds);
 
-    io.to(friendSockets).emit(USER_STATUS_CHANGE,{
-        userId:user._id,
-        isOnline:true
-    })
+    io.to(friendSockets).emit(USER_STATUS_CHANGE, {
+        userId: user._id,
+        isOnline: true
+    });
    
-    userSocketIds.set(user._id.toString(), socket.id)
+    userSocketIds.set(user._id.toString(), socket.id);
+    
+    socket.on(GET_ONLINE_USERS, async(callback) => {
+        try {
+            const onlineUsers = [];
+            for (const friendId of friendIds) {
+                if (userSocketIds.has(friendId.toString())) {
+                    onlineUsers.push({ userId: friendId.toString() });
+                }
+            }
+            
+            if (typeof callback === 'function') {
+                callback({ users: onlineUsers });
+            }
+        } catch (error) {
+            console.error('Error getting online users:', error);
+            if (typeof callback === 'function') {
+                callback({ users: [] });
+            }
+        }
+    });
+
     socket.on(NEW_MESSAGE, async ({ chatId, members, message }) => {
         const messageForRealTime = {
             content: message,
@@ -243,15 +264,15 @@ io.on('connection', async(socket) => {
         }, {
             new: true,
             runValidators: true
-        })
+        });
 
-        userSocketIds.delete(user._id.toString())
+        userSocketIds.delete(user._id.toString());
 
         io.to(friendSockets).emit(USER_STATUS_CHANGE, {
             userId: user._id,
             isOnline: false,
             lastActive: new Date()
-        })
+        });
     });
 });
 
@@ -266,8 +287,6 @@ app.use((req, res) => {
 
 // Global Error handler
 import { errorHandler } from './middlewares/error.middleware.js';
-import { NEW_MESSAGE, NEW_MESSAGE_ALERT, STOP_TYPING } from './constants.js';
-
 
 app.use(errorHandler)
 //server

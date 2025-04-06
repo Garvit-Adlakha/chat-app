@@ -1,24 +1,26 @@
 import { useState, useEffect } from "react";
 import { IconX, IconSearch, IconUserPlus } from "@tabler/icons-react";
-import { useQuery,useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import userService from "../../service/userService";
 import toast from "react-hot-toast";
+
 const FriendSearch = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedQuery, setDebouncedQuery] = useState("");
 
-    useEffect(()=>{
-        const handler=setTimeout(()=>{
-            setDebouncedQuery(searchQuery)
-        },500)
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(searchQuery);
+        }, 600);
 
-        return ()=> clearTimeout(handler)
-    },[searchQuery])
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
 
-    const {data: users = [], isLoading} = useQuery({
+    const { data: users = [], isLoading } = useQuery({
         queryKey: ["users", debouncedQuery],
         queryFn: () => userService.UserSearch(debouncedQuery),
     });
+
     const queryClient = useQueryClient();
     const mutation = useMutation({
         mutationFn: userService.SendFriendRequest,
@@ -27,12 +29,13 @@ const FriendSearch = ({ isOpen, onClose }) => {
             queryClient.invalidateQueries({ queryKey: ["users", debouncedQuery] });
         },
         onError: (error) => {
-        }
+            toast.error(error?.response?.data?.message || "Failed to send friend request");
+        },
     });
+
     const handleAddFriend = (id) => {
-        
-        mutation.mutate(id)
-    }
+        mutation.mutate(id);
+    };
 
     // Prevent scrolling when modal is open
     useEffect(() => {
@@ -52,7 +55,7 @@ const FriendSearch = ({ isOpen, onClose }) => {
     if (isLoading) {
         return (
             <div 
-                className="fxixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999]"
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999]"
                 onClick={(e) => {
                     if (e.target === e.currentTarget) onClose();
                 }}
@@ -66,7 +69,7 @@ const FriendSearch = ({ isOpen, onClose }) => {
     }
 
     return (
-        <div 
+        <div
             className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999]"
             onClick={(e) => {
                 if (e.target === e.currentTarget) onClose();
@@ -76,7 +79,7 @@ const FriendSearch = ({ isOpen, onClose }) => {
                 <div className="p-4 sm:p-6">
                     <div className="p-2 sm:p-4">
                         <button
-                            className="w-full btn bg-black/50 hover:bg-black/60 text-white rounded-lg cursor-pointer px-3 py-1.5 sm:px-4 sm:py-2 flex items-center justify-center gap-1.5 sm:gap-2" 
+                            className="w-full btn bg-black/50 hover:bg-black/60 text-white rounded-lg cursor-pointer px-3 py-1.5 sm:px-4 sm:py-2 flex items-center justify-center gap-1.5 sm:gap-2"
                             onClick={onClose}
                             aria-label="Close"
                         >
@@ -100,6 +103,16 @@ const FriendSearch = ({ isOpen, onClose }) => {
 
                     {/* Results */}
                     <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                        {users.length === 0 && debouncedQuery && (
+                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                <p className="text-neutral-500 dark:text-neutral-400">No users found matching your search.</p>
+                            </div>
+                        )}
+                        {users.length === 0 && !debouncedQuery && (
+                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                <p className="text-neutral-500 dark:text-neutral-400">Enter a username or email to search for users.</p>
+                            </div>
+                        )}
                         {users.map((user) => (
                             <div 
                                 key={user._id} 
@@ -124,11 +137,18 @@ const FriendSearch = ({ isOpen, onClose }) => {
                                         </p>
                                     </div>
                                 </div>
-                                <button className="btn btn-sm btn-primary"
-                                onClick={() => handleAddFriend(user._id)}
+                                <button 
+                                    className="btn btn-sm btn-primary"
+                                    onClick={() => handleAddFriend(user._id)}
+                                    disabled={mutation.isPending && mutation.variables === user._id}
+                                    aria-label={`Add ${user.name} as friend`}
                                 >
-                                    <IconUserPlus className="w-4 h-4 mr-1" />
-                                    Add
+                                    {mutation.isPending && mutation.variables === user._id ? (
+                                        <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>
+                                    ) : (
+                                        <IconUserPlus className="w-4 h-4 mr-1" />
+                                    )}
+                                    {mutation.isPending && mutation.variables === user._id ? 'Adding...' : 'Add'}
                                 </button>
                             </div>
                         ))}

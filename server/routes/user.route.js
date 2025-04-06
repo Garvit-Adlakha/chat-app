@@ -2,7 +2,8 @@ import express from 'express';
 import upload from '../utils/multer.js';
 import {
   loginUser, registerUser, signout, searchUser, sendFriendRequest, getAllNotifications,
-  acceptFriendRequest, getMyFriends, getProfile, googleAuth, updateUser
+  acceptFriendRequest, getMyFriends, getProfile, googleAuth, updateUser,
+  removeFriends
 } from '../controllers/user.controller.js';
 import { isAuthenticated } from '../middlewares/auth.middleware.js';
 import { 
@@ -23,8 +24,8 @@ const setCorsHeaders = (req, res, next) => {
 router.use(setCorsHeaders);
 
 // Public authentication routes
-router.post('/signup', upload.single('avatar'), validateSignup, registerUser);
-router.post('/signin', validateSignin, loginUser);
+router.post('/signup', upload.single('avatar'), registerUser);
+router.post('/signin', loginUser);
 
 // Google authentication
 router.post('/google-auth', validateGoogleAuth, googleAuth);
@@ -44,6 +45,7 @@ router.put('/sendrequest', isAuthenticated, sendFriendRequest);
 router.get('/notifications', isAuthenticated, getAllNotifications);
 router.put('/acceptrequest', isAuthenticated, acceptFriendRequest);
 router.get('/getfriends', isAuthenticated, getMyFriends);
+router.delete('/removefriend/:friendId', isAuthenticated, removeFriends );
 
 // Profile update
 router.put('/update', isAuthenticated, upload.single('avatar'), updateUser);

@@ -1,4 +1,4 @@
-export const DB_Name="WhisperWire"
+export const DB_Name=process.env.DB_NAME || "chat-app"
 export const ALERT="ALERT"
 export const REFETCH_CHATS="REFETCH_CHATS"
 export const NEW_MESSAGE_ALERT="NEW_MESSAGE_ALERT"
@@ -16,3 +16,5 @@ export const TYPING="TYPING"
 export const STOP_TYPING="STOP_TYPING"
 
 export const USER_STATUS_CHANGE="USER_STATUS_CHANGE"
+export const GET_ONLINE_USERS="GET_ONLINE_USERS"
+export const RECONNECT_USERS="RECONNECT_USERS"

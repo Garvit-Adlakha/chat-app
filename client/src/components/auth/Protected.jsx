@@ -2,7 +2,7 @@ import { Navigate, Outlet} from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import userService from "../../service/userService";
 
-const Protected = ({ children, loading, redirect = '/login', requiredAuth = true }) => {
+const Protected = ({ children, redirect = '/login', requiredAuth = true }) => {
     const { data: user } = useQuery({
         queryKey: ['user'],
         queryFn: () => userService.currentUser(),

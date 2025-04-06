@@ -1,38 +1,50 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { IconCamera, IconHeartHandshake, IconShieldLock, IconUsers, IconBrandGoogle } from '@tabler/icons-react';
+import { useState } from "react";
+import { IconCamera, IconHeartHandshake, IconShieldLock, IconUsers } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import userService from "../service/userService";
 import toast from "react-hot-toast";
-import GoogleSignInButton from "../components/GoogleSignInButton";
+import VisuallyHiddenInput from "../components/shared/VisuallyHiddenInput";
 
-// This component hides the file input but makes it accessible
-const VisuallyHiddenInput = ({ children, ...props }) => {
-  return (
-    <input
-      type="file"
-      className="absolute w-0 h-0 opacity-0"
-      style={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)' }}
-      {...props}
-    />
-  );
-};
 
 const SignupPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [avatarPreview, setAvatarPreview] = useState("https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp");
   const [avatarFile, setAvatarFile] = useState(null);
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [bio, setBio] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    bio: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingState, setLoadingState] = useState({
+    isLoading: false,
+    type: null, // 'google', 'form', 'avatar'
+    progress: 0,
+    message: ''
+  });
+
+  // Helper function to update form data
+  const updateFormData = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Helper function to update loading state
+  const updateLoadingState = (isLoading, type = null, message = '', progress = 0) => {
+    setLoadingState({
+      isLoading,
+      type,
+      message,
+      progress
+    });
+  };
 
   const googleAuthMutation = useMutation({
     mutationFn: async (idToken) => {
@@ -42,19 +54,19 @@ const SignupPage = () => {
       queryClient.setQueryData(['user'], data.user);
       queryClient.invalidateQueries(['user']).then(() => {
         toast.success(data.message || "Signed up with Google successfully");
-        setGoogleLoading(false);
+        updateLoadingState(false);
         navigate("/chat");
       });
     },
     onError: (error) => {
       setError(error.message || "Google authentication failed");
-      setGoogleLoading(false);
+      updateLoadingState(false);
     }
   });
 
   // Handle Google Sign-In success
   const handleGoogleSuccess = (credential) => {
-    setGoogleLoading(true);
+    updateLoadingState(true, 'google', 'Authenticating with Google...');
     setError("");
     // Call the Google authentication mutation
     googleAuthMutation.mutate(credential);
@@ -63,12 +75,33 @@ const SignupPage = () => {
   // Handle Google Sign-In error
   const handleGoogleError = (errorMessage) => {
     setError(errorMessage);
-    setGoogleLoading(false);
+    updateLoadingState(false);
   };
 
   const signupMutation = useMutation({
-    mutationFn: async (formData) => {
-      return userService.signUp(formData);
+    mutationFn: async (submitFormData) => {
+      updateLoadingState(true, 'form', 'Creating your account...', 25);
+      
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setLoadingState(prev => {
+          if (prev.progress < 90) {
+            return { ...prev, progress: prev.progress + 15 };
+          }
+          clearInterval(progressInterval);
+          return prev;
+        });
+      }, 700);
+      
+      try {
+        const result = await userService.signUp(submitFormData);
+        clearInterval(progressInterval);
+        updateLoadingState(true, 'form', 'Account created! Redirecting...', 100);
+        return result;
+      } catch (error) {
+        clearInterval(progressInterval);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['user'], data.user);
@@ -79,79 +112,99 @@ const SignupPage = () => {
     },
     onError: (error) => {
       setError(error.message || "Signup failed");
+      updateLoadingState(false);
     }
   });
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (!file) return;
+    
+    try {
+      // Size validation - 5MB limit
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Avatar image must be less than 5MB");
+        toast.error("Image too large. Please upload an image less than 5MB");
         return;
       }
 
-      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+      // Type validation
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
       if (!validTypes.includes(file.type)) {
-        toast.error("Please upload a valid image file (JPEG, PNG, or GIF)");
+        toast.error("Unsupported format. Please use JPEG, PNG, GIF or WebP");
         return;
+      }
+
+      // Set loading state for large images
+      const isLargeImage = file.size > 1 * 1024 * 1024; // 1MB
+      if (isLargeImage) {
+        updateLoadingState(true, 'avatar', 'Processing image...');
       }
 
       setAvatarFile(file);
+      
+      // Use FileReader with error handling
       const reader = new FileReader();
-      reader.onloadend = () => setAvatarPreview(reader.result);
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+        if (isLargeImage) {
+          updateLoadingState(false);
+          toast.success("Image loaded successfully");
+        }
+      };
+      reader.onerror = () => {
+        toast.error("Failed to read image. Please try another file");
+        setAvatarFile(null);
+        updateLoadingState(false);
+      };
       reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Error handling avatar change:", error);
+      toast.error("Something went wrong. Please try again");
+      setAvatarFile(null);
+      updateLoadingState(false);
     }
-  };
-
-  // Add debugging for FormData content
-  const logFormData = (formData) => {
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setIsSubmitting(true);
+    updateLoadingState(true, 'form', 'Validating form...');
 
     try {
       // Validation
       if (!avatarFile) {
         setError("Please upload a profile picture");
-        setIsSubmitting(false);
+        updateLoadingState(false);
         return;
       }
 
-      if (password !== confirmPassword) {
+      if (formData.password !== formData.confirmPassword) {
         setError("Passwords do not match");
-        setIsSubmitting(false);
+        updateLoadingState(false);
         return;
       }
 
-      if (password.length < 8) {
+      if (formData.password.length < 8) {
         setError("Password must be at least 8 characters long");
-        setIsSubmitting(false);
+        updateLoadingState(false);
         return;
       }
 
       // Create form data for file upload
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("email", email);
-      formData.append("username", username || email.split('@')[0]);
-      formData.append("password", password);
-      formData.append("bio", bio || "Hey there! I'm using Chat App");
+      const submitFormData = new FormData();
+      submitFormData.append("name", formData.name);
+      submitFormData.append("email", formData.email);
+      submitFormData.append("password", formData.password);
+      submitFormData.append("bio", formData.bio || "Hey there! I'm using Chat App");
       
       // Ensure the file is properly attached with correct field name (matching server expectation)
-      formData.append("avatar", avatarFile, avatarFile.name);
+      submitFormData.append("avatar", avatarFile, avatarFile.name);
       
-      // Log FormData contents for debugging
-      logFormData(formData);
-      
-      signupMutation.mutate(formData);
+      signupMutation.mutate(submitFormData);
     } catch (err) {
       console.error("Error in signup form submission:", err);
       setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      updateLoadingState(false);
     }
   };
 
@@ -161,16 +214,6 @@ const SignupPage = () => {
         <div className="card bg-black/20 backdrop-blur-lg w-full max-w-md shrink-0 shadow-2xl transition-all duration-300 hover:shadow-3xl lg:w-1/2 border border-white/10">
           <div className="card-body animate-slideUp py-6">
             <h1 className="text-3xl text-center mb-6 text-white font-bold">Create Account</h1>
-
-            {/* Google Sign-In Button */}
-            <div className="mb-6 bg-black">
-              <GoogleSignInButton 
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-              />
-            </div>
-            <div className="divider text-white text-sm opacity-60">or sign up with email</div>
-
             {error && (
               <div className="alert alert-error text-sm mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -180,17 +223,36 @@ const SignupPage = () => {
               </div>
             )}
 
+            {loadingState.isLoading && loadingState.type === 'form' && (
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm text-blue-300">{loadingState.message}</span>
+                  <span className="text-xs text-gray-400">{loadingState.progress}%</span>
+                </div>
+                <progress 
+                  className="progress progress-primary w-full" 
+                  value={loadingState.progress} 
+                  max="100"
+                ></progress>
+              </div>
+            )}
+
             <form className="space-y-3" onSubmit={handleSubmit}>
               {/* Avatar Upload */}
               <div className="flex flex-col items-center justify-center">
                 <label htmlFor="avatar" className="cursor-pointer group">
                   <div className="avatar relative">
-                    <div className="w-20 h-20 rounded-full ring ring-blue-500 ring-offset-base-100 ring-offset-2 overflow-hidden transition-transform duration-300 ease-in-out group-hover:scale-110">
+                    <div className={`w-20 h-20 rounded-full ring ring-blue-500 ring-offset-base-100 ring-offset-2 overflow-hidden transition-transform duration-300 ease-in-out group-hover:scale-110 ${loadingState.isLoading && loadingState.type === 'avatar' ? 'opacity-70' : ''}`}>
                       <img
                         src={avatarPreview}
                         alt="Avatar Preview"
                         className="object-cover w-full h-full"
                       />
+                      {loadingState.isLoading && loadingState.type === 'avatar' && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                          <span className="loading loading-spinner loading-md text-blue-400"></span>
+                        </div>
+                      )}
                     </div>
                     <div className="absolute -bottom-2 right-0">
                       <IconCamera
@@ -205,41 +267,26 @@ const SignupPage = () => {
                   accept="image/*"
                   id="avatar"
                   onChange={handleAvatarChange}
+                  disabled={loadingState.isLoading}
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   {avatarFile ? `Selected: ${avatarFile.name.substring(0, 20)}${avatarFile.name.length > 20 ? '...' : ''}` : "Upload profile picture"}
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Full Name */}
-                <div className="form-control">
-                  <label className="label py-1">
-                    <span className="label-text text-white">Full Name</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="input input-bordered w-full bg-white/10 text-white placeholder:text-gray-400 border-white/20 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30"
-                  />
-                </div>
-
-                {/* Username */}
-                <div className="form-control">
-                  <label className="label py-1">
-                    <span className="label-text text-white">Username (optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="johndoe"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="input input-bordered w-full bg-white/10 text-white placeholder:text-gray-400 border-white/20 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30"
-                  />
-                </div>
+              {/* Full Name */}
+              <div className="form-control">
+                <label className="label py-1">
+                  <span className="label-text text-white">Full Name</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="John Doe"
+                  value={formData.name}
+                  onChange={(e) => updateFormData('name', e.target.value)}
+                  required
+                  className="input input-bordered w-full bg-white/10 text-white placeholder:text-gray-400 border-white/20 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30"
+                />
               </div>
 
               {/* Email */}
@@ -251,8 +298,8 @@ const SignupPage = () => {
                   <input
                     type="email"
                     placeholder="your.email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={formData.email}
+                    onChange={(e) => updateFormData('email', e.target.value)}
                     required
                     className="input input-bordered w-full bg-white/10 text-white placeholder:text-gray-400 border-white/20 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30"
                   />
@@ -272,8 +319,8 @@ const SignupPage = () => {
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      value={formData.password}
+                      onChange={(e) => updateFormData('password', e.target.value)}
                       className="input input-bordered w-full bg-white/10 text-white placeholder:text-gray-400 border-white/20 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30"
                       required
                       minLength="8"
@@ -302,8 +349,8 @@ const SignupPage = () => {
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    value={formData.confirmPassword}
+                    onChange={(e) => updateFormData('confirmPassword', e.target.value)}
                     className="input input-bordered w-full bg-white/10 text-white placeholder:text-gray-400 border-white/20 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30"
                     required
                   />
@@ -321,8 +368,8 @@ const SignupPage = () => {
                 </label>
                 <textarea
                   placeholder="Tell us a bit about yourself"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
+                  value={formData.bio}
+                  onChange={(e) => updateFormData('bio', e.target.value)}
                   className="textarea textarea-bordered w-full bg-white/10 text-white placeholder:text-gray-400 border-white/20 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30"
                   rows="2"
                 />
@@ -331,10 +378,13 @@ const SignupPage = () => {
               <div className="form-control mt-4">
                 <button
                   type="submit"
-                  className={`btn btn-primary w-full ${signupMutation.isPending || isSubmitting ? 'loading' : ''}`}
-                  disabled={signupMutation.isPending || isSubmitting}
+                  className={`btn btn-primary w-full `}
+                  disabled={loadingState.isLoading}
                 >
-                  {signupMutation.isPending || isSubmitting ? 'Creating Account...' : 'Create Account'}
+                  {loadingState.isLoading && loadingState.type === 'form' 
+                    ? 'Creating Account...' 
+                    : 'Create Account'
+                  }
                 </button>
               </div>
               <p className="text-center text-white text-sm mt-1">

@@ -7,23 +7,12 @@ import axiosInstance from "../axios/axiosInstance";
 const userService = {
   signUp: async (data) => {
     try {
-      let hasAvatar = false;
-      for (let [key, value] of data.entries()) {
-        if (key === "avatar" && value instanceof File && value.size > 0) {
-          hasAvatar = true;
-          break;
-        }
-      }
-      
-      if (!hasAvatar) {
-        throw new Error("Please upload a profile picture");
-      }
-      
       const response = await axiosInstance.post('/user/signup', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
     } catch (error) {
+      console.error(error);
       throw new Error(error.response?.data?.message || "Signup failed");
     }
   },
@@ -121,6 +110,15 @@ const userService = {
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || "Failed to update profile");
+    }
+  },
+  removeFriends:async(friendId) => {
+    try {
+      const response = await axiosInstance.delete(`/user/removefriend/${friendId}`);
+      return response.data;
+    } catch (error) {
+      console.error(error);
+      throw new Error(error.response?.data?.message || "Failed to remove friend");
     }
   },
 }

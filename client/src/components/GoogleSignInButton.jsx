@@ -166,12 +166,12 @@ const GoogleSignInButton = ({ onSuccess, onError }) => {
   };
 
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col rounded-2xl overflow-hidden">
       {/* Loading spinner */}
       {/* Google's rendered button */}
       <div
         ref={buttonRef}
-        className="google-signin-button w-full min-h-[40px] flex items-center justify-center "
+        className="google-signin-button  min-h-[40px] flex items-center justify-center "
       />
 
       {/* Fallback button if Google's button doesn't render */}

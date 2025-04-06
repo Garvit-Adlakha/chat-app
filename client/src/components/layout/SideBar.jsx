@@ -11,36 +11,72 @@ import ProfileSection from '../profile/ProfileSection';
 import DirectMessagesSection from '../chat/DirectMessagesSection';
 import FriendRequestsSection from '../chat/FriendRequestsSection';
 import { NavButton, SettingsDropdown, UserAvatar } from "./sidebar-components";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import userService from "../../service/userService";
 import FriendsSection from "../chat/FriendsSection";
 import { MobileDock } from './sidebar-components/MobileDock';
+import useChatStore from "../../store/chatStore";
+import useSocketStore from "../socket/Socket";
+import { NEW_FRIEND_REQUEST, NEW_FRIEND_REQUEST_ACCEPTED, NEW_FRIEND_REQUEST_REJECTED } from "../../constants/event";
 
 export const SideBar = () => {
     const [activeSection, setActiveSection] = useState('direct');
     const { isOpen } = useSidebar();  // Changed from open to isOpen for clarity
-    const{data:request , isFetching}=useQuery({
-        queryKey:["requests"],
+    const { requestNotifications, setRequestNotifications, incrementRequestNotifications, decrementRequestNotifications } = useChatStore();
+    const { socket } = useSocketStore();
+    const queryClient = useQueryClient();
+    
+    const { data: request, isFetching, refetch: refetchRequests } = useQuery({
+        queryKey: ["requests"],
         queryFn: userService.getAllNotifications,
-        refetchInterval:10000,
         refetchOnWindowFocus: false,
         refetchOnReconnect: true,
-        
-    })
-    const [requestCount, setRequestCount] = useState(0);
-    
-    // Update requestCount whenever request data changes
+    });
+
+    // Update requestNotifications in the store whenever request data changes
     useEffect(() => {
-        if (request && request.length > 0) {
-            setRequestCount(request.length);
+        if (request) {
+            // Always set the notifications count to match the actual request data
+            // This ensures the badge is properly updated whether requests increase or decrease
+            setRequestNotifications(request.length);
         }
-    }, [request]);
-    
-    const navigationItems= [
+    }, [request, setRequestNotifications]);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNewFriendRequest = () => {
+            incrementRequestNotifications();
+            refetchRequests();
+        };
+
+        const handleFriendRequestAccepted = () => {
+            decrementRequestNotifications();
+            refetchRequests();
+        };
+
+        const handleFriendRequestRejected = () => {
+            decrementRequestNotifications();
+            refetchRequests();
+        };
+
+        socket.on(NEW_FRIEND_REQUEST, handleNewFriendRequest);
+        socket.on(NEW_FRIEND_REQUEST_ACCEPTED, handleFriendRequestAccepted);
+        socket.on(NEW_FRIEND_REQUEST_REJECTED, handleFriendRequestRejected);
+
+        return () => {
+            socket.off(NEW_FRIEND_REQUEST, handleNewFriendRequest);
+            socket.off(NEW_FRIEND_REQUEST_ACCEPTED, handleFriendRequestAccepted);
+            socket.off(NEW_FRIEND_REQUEST_REJECTED, handleFriendRequestRejected);
+        };
+    }, [socket, incrementRequestNotifications, decrementRequestNotifications, refetchRequests]);
+
+    const navigationItems = [
         {
             id: 'direct',
             icon: IconMessage,
             label: 'Direct Messages',
+            tooltip: 'Direct Messages',
             isActive: activeSection === 'direct',
             onClick: () => setActiveSection('direct')
         },
@@ -48,26 +84,26 @@ export const SideBar = () => {
             id: 'groups',
             icon: IconUsersGroup,
             label: 'Groups',
+            tooltip: 'Group Chats',
             isActive: activeSection === 'groups',
             onClick: () => setActiveSection('groups')
         },
         {
-            id:'Friends',
+            id: 'Friends',
             icon: IconUsers,
             label: 'Friends',
+            tooltip: 'Your Friends',
             isActive: activeSection === 'friends',
             onClick: () => setActiveSection('friends')
         },
         {
             id: 'requests',
             icon: IconHeartQuestion,
-            label: 'Friend Requests',
+            label: 'Requests',
+            tooltip: 'Friend Requests',
             isActive: activeSection === 'requests',
-            onClick: () => {
-                setActiveSection('requests');
-                setRequestCount(0);
-            },
-            badge: requestCount
+            onClick: () => setActiveSection('requests'),
+            badge: requestNotifications > 0 ? requestNotifications : null
         }
     ];
 
@@ -115,6 +151,7 @@ export const SideBar = () => {
                                     {...item}
                                     badge={item.badge}
                                     aria-label={item.label}
+                                    tooltip={item.tooltip}
                                 />
 
                             ))}
@@ -151,6 +188,7 @@ export const SideBar = () => {
                             badge={item.badge}
                             size="sm"
                             aria-label={item.label}
+                            tooltip={item.tooltip}
                         />
                     ))}
                     <SettingsDropdown size="sm" />

@@ -7,7 +7,7 @@ import useUiStore from '../../../store/UiStore';
 import toast from 'react-hot-toast';
 import { useClickOutside } from '../../../hooks/UseClickOutside';
 
-export const SettingsDropdown = () => {
+export const SettingsDropdown = ({ size = "default" }) => {
     const [isOpen, setIsOpen] = useState(false);
     const { theme, toggleTheme } = useUiStore();
     const navigate = useNavigate();
@@ -56,7 +56,7 @@ export const SettingsDropdown = () => {
     };
 
     return (
-        <div className="relative z-[999]">
+        <div className="relative z-[999] group">
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
@@ -70,6 +70,11 @@ export const SettingsDropdown = () => {
             >
                 <IconSettings className="w-6 h-6" />
             </button>
+
+            {/* Tooltip */}
+            <div className="absolute left-16 top-1/2 -translate-y-1/2 px-2 py-1 bg-neutral-800 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[1000]">
+                Settings
+            </div>
 
             {isOpen && (
                 <>

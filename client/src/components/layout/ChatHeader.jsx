@@ -69,7 +69,7 @@ export const ChatHeader = ({ chatId }) => {
 
     return (
         <>
-            <header className="p-2 mx-12 bg-neutral-200 dark:bg-neutral-800/80 backdrop-blur-xl z-10">
+            <header className="p-2 mx-12 bg-neutral-200 dark:bg-neutral-800/80 backdrop-blur-xl rounded-b-2xl z-10">
                 <div className="flex justify-between items-center">
                     <div
                         className="flex items-center space-x-4 cursor-pointer"

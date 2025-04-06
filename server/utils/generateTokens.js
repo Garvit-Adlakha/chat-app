@@ -40,10 +40,7 @@ export const generateToken = (res, user, message, statusCode = 200) => {
         };
         
         res.cookie('token', token, cookieOptions);
-        
-        
-        res.cookie('token', token, cookieOptions);
-
+    
         // Sanitized user object
         const sanitizedUser = {
             _id: user._id,

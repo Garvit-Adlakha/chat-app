@@ -165,9 +165,11 @@ const AppLayout = () => (WrappedComponent) => {
             };
             
             const friendRequestHandler = (data) => {
-                // Ensure we have valid data and immediately trigger notification
-                console.log("Received friend request:", data);
-                newRequestHandler();
+                // Only increment notification count if the current user is the recipient
+                if (data && data.recipient && data.recipient._id === localStorage.getItem('userId')) {
+                    console.log("Received friend request:", data);
+                    newRequestHandler();
+                }
             };
                 
             socket.on(TYPING, typingHandler);

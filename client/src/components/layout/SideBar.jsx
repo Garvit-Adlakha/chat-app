@@ -42,34 +42,6 @@ export const SideBar = () => {
         }
     }, [request, setRequestNotifications]);
 
-    useEffect(() => {
-        if (!socket) return;
-
-        const handleNewFriendRequest = () => {
-            incrementRequestNotifications();
-            refetchRequests();
-        };
-
-        const handleFriendRequestAccepted = () => {
-            decrementRequestNotifications();
-            refetchRequests();
-        };
-
-        const handleFriendRequestRejected = () => {
-            decrementRequestNotifications();
-            refetchRequests();
-        };
-
-        socket.on(NEW_FRIEND_REQUEST, handleNewFriendRequest);
-        socket.on(NEW_FRIEND_REQUEST_ACCEPTED, handleFriendRequestAccepted);
-        socket.on(NEW_FRIEND_REQUEST_REJECTED, handleFriendRequestRejected);
-
-        return () => {
-            socket.off(NEW_FRIEND_REQUEST, handleNewFriendRequest);
-            socket.off(NEW_FRIEND_REQUEST_ACCEPTED, handleFriendRequestAccepted);
-            socket.off(NEW_FRIEND_REQUEST_REJECTED, handleFriendRequestRejected);
-        };
-    }, [socket, incrementRequestNotifications, decrementRequestNotifications, refetchRequests]);
 
     const navigationItems = [
         {

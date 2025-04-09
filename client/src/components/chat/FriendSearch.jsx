@@ -8,6 +8,12 @@ const FriendSearch = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedQuery, setDebouncedQuery] = useState("");
 
+    // Get current user data
+    const { data: currentUser } = useQuery({
+        queryKey: ["user"],
+        queryFn: userService.currentUser,
+    });
+
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedQuery(searchQuery);
@@ -19,6 +25,15 @@ const FriendSearch = ({ isOpen, onClose }) => {
     const { data: users = [], isLoading } = useQuery({
         queryKey: ["users", debouncedQuery],
         queryFn: () => userService.UserSearch(debouncedQuery),
+    });
+
+    // Filter out current user and existing friends
+    const filteredUsers = users.filter(user => {
+        // Remove yourself from results
+        if (currentUser && user._id === currentUser._id) {
+            return false;
+        }
+        return true;
     });
 
     const queryClient = useQueryClient();
@@ -103,17 +118,17 @@ const FriendSearch = ({ isOpen, onClose }) => {
 
                     {/* Results */}
                     <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                        {users.length === 0 && debouncedQuery && (
+                        {filteredUsers.length === 0 && debouncedQuery && (
                             <div className="flex flex-col items-center justify-center py-8 text-center">
                                 <p className="text-neutral-500 dark:text-neutral-400">No users found matching your search.</p>
                             </div>
                         )}
-                        {users.length === 0 && !debouncedQuery && (
+                        {filteredUsers.length === 0 && !debouncedQuery && (
                             <div className="flex flex-col items-center justify-center py-8 text-center">
                                 <p className="text-neutral-500 dark:text-neutral-400">Enter a username or email to search for users.</p>
                             </div>
                         )}
-                        {users.map((user) => (
+                        {filteredUsers.map((user) => (
                             <div 
                                 key={user._id} 
                                 className="flex items-center justify-between p-3 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
